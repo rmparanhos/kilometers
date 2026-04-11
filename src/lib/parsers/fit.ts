@@ -27,7 +27,16 @@ interface FitSession extends Record<string, unknown> {
   avg_heart_rate?: number;
   max_heart_rate?: number;
   avg_cadence?: number;
+  // Newer Garmin devices write enhanced_* instead of the base field
   avg_speed?: number;
+  enhanced_avg_speed?: number;
+  // Running dynamics (Garmin Running Power / Advanced Running Dynamics)
+  avg_vertical_oscillation?: number;
+  avg_stance_time?: number;
+  avg_step_length?: number;
+  avg_vertical_ratio?: number;
+  normalized_power?: number;
+  total_calories?: number;
 }
 
 export interface ParsedFit {
@@ -86,6 +95,21 @@ export function extractActivityFromFit(data: ParsedFit): ParsedActivityData {
   const startRaw = session.start_time ?? session.timestamp;
   const startedAt = startRaw instanceof Date ? startRaw : new Date(String(startRaw));
 
+  // Newer Garmin devices write enhanced_avg_speed instead of avg_speed.
+  // Fall back to computing from distance/time if neither is present.
+  const speedMperS: number | undefined =
+    (session["enhanced_avg_speed"] as number | undefined) ??
+    session.avg_speed ??
+    (session.total_distance && session.total_elapsed_time
+      ? session.total_distance / session.total_elapsed_time
+      : undefined);
+
+  // FIT running cadence is revolutions/min per leg — multiply by 2 for total spm.
+  const avgCadenceRpm: number | undefined =
+    session.avg_cadence != null
+      ? session.avg_cadence * 2
+      : undefined;
+
   // First record may carry the GPS start point
   const firstRecord = records[0];
 
@@ -102,8 +126,8 @@ export function extractActivityFromFit(data: ParsedFit): ParsedActivityData {
     startLon: firstRecord?.["position_long"] as number | undefined,
     avgHeartRateBpm: session.avg_heart_rate,
     maxHeartRateBpm: session.max_heart_rate,
-    avgCadenceRpm: session.avg_cadence,
-    avgPaceMperS: session.avg_speed,
+    avgCadenceRpm,
+    avgPaceMperS: speedMperS,
     records: records.length > 0 ? records : undefined,
   };
 }
