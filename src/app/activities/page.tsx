@@ -1,19 +1,104 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { activities } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { Header } from "@/components/layout/Header";
+import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
 
 export default async function ActivitiesPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
+  const userId = (session.user as { id: string }).id;
+
+  const userActivities = db
+    .select()
+    .from(activities)
+    .where(eq(activities.userId, userId))
+    .orderBy(desc(activities.startedAt))
+    .all();
+
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Activities</h1>
-        <p className="text-gray-500 text-sm">
-          Upload .fit or .gpx files to get started.
-        </p>
-      </div>
-    </main>
+    <>
+      <Header />
+      <main className="min-h-screen bg-gray-50">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+              Atividades
+            </h1>
+            <span className="text-sm text-gray-400">
+              {userActivities.length} no total
+            </span>
+          </div>
+
+          {userActivities.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 bg-white px-8 py-12 text-center">
+              <p className="text-sm text-gray-500">
+                Nenhuma atividade. Envie um arquivo .fit ou .gpx via API{" "}
+                <code className="font-mono text-xs">POST /api/activities/upload</code>.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50 text-left">
+                    <th className="px-4 py-3 font-medium text-gray-500">Data</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Nome</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Distância</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Duração</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Pace</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">FC Média</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">TSS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {userActivities.map((act) => (
+                    <tr
+                      key={act.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-gray-500 tabular-nums">
+                        {act.startedAt.toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-900">
+                        <a
+                          href={`/activities/${act.id}`}
+                          className="hover:underline"
+                        >
+                          {act.name ?? act.sport ?? "Atividade"}
+                        </a>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 tabular-nums">
+                        {formatDistance(act.distanceM)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 tabular-nums">
+                        {formatDuration(act.durationSec)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 tabular-nums">
+                        {formatPace(act.avgPaceMperS)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 tabular-nums">
+                        {act.avgHeartRateBpm != null
+                          ? `${Math.round(act.avgHeartRateBpm)} bpm`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 tabular-nums">
+                        {act.trainingLoad != null
+                          ? act.trainingLoad.toFixed(1)
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </main>
+    </>
   );
 }
