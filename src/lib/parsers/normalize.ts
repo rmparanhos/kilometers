@@ -1,7 +1,5 @@
 /**
  * Normalizes parsed .fit or .gpx data into the ActivityInsert shape.
- *
- * Full implementation comes in Step 2 of the project roadmap.
  */
 import type { ActivityInsert } from "@/lib/db/schema";
 
@@ -26,7 +24,12 @@ export type ParsedActivityData = {
 export function normalizeToActivityInsert(
   parsed: ParsedActivityData,
   userId: string,
-  opts: { sourceFile?: string; sourceFormat?: string; externalId?: string } = {}
+  opts: {
+    sourceFile?: string;
+    sourceFormat?: string;
+    externalId?: string;
+    trainingLoad?: number;
+  } = {}
 ): Omit<ActivityInsert, "id" | "createdAt"> {
   return {
     userId,
@@ -47,7 +50,7 @@ export function normalizeToActivityInsert(
     maxHeartRateBpm: parsed.maxHeartRateBpm ?? null,
     avgCadenceRpm: parsed.avgCadenceRpm ?? null,
     avgPaceMperS: parsed.avgPaceMperS ?? null,
-    trainingLoad: null, // computed separately after parsing
+    trainingLoad: opts.trainingLoad ?? null,
     perceivedEffort: null,
     equipmentId: null,
     rawDataJson: parsed.records ? JSON.stringify(parsed.records) : null,
