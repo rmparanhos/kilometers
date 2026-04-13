@@ -1,12 +1,20 @@
 /**
- * CTL / ATL / TSB calculations — Banister Performance Manager Chart (PMC) model
+ * CTL / ATL / TSB calculations — Banister impulse–response model
  *
  * Definitions:
- *   CTL  — Chronic Training Load  (fitness)  — 42-day EWA of daily load
- *   ATL  — Acute Training Load    (fatigue)  — 7-day EWA of daily load
+ *   CTL  — Chronic Training Load  (fitness)  — 42-day EWA of daily training load
+ *   ATL  — Acute Training Load    (fatigue)  — 7-day EWA of daily training load
  *   TSB  — Training Stress Balance (form)    = CTL − ATL
  *
- * All functions are pure and have no DB dependency so they're trivially testable.
+ * References:
+ *   Morton, R.H., Fitz-Clarke, J.R. & Banister, E.W. (1990). Modeling human
+ *     performance in running. Journal of Applied Physiology, 69(3), 1171–1177.
+ *     https://doi.org/10.1152/jappl.1990.69.3.1171
+ *
+ *   Coggan, A.R. (2003). Training and racing with a power meter. Peaks Coaching
+ *     Group. [popularised TSS/CTL/ATL nomenclature in endurance sports]
+ *
+ * All functions are pure and have no DB dependency so they are trivially testable.
  */
 import { addDays, startOfDay, format, isAfter } from "date-fns";
 
@@ -117,10 +125,15 @@ export function fillGaps(
 // ---------------------------------------------------------------------------
 
 /**
- * Estimates hrTSS for a single activity.
+ * Estimates hrTSS for a single activity using a simplified TRIMP-based formula.
  *
- * Uses a simplified TRIMP-like formula: (hours × HR ratio) × 100
- * Replace with Banister's exponential once LTHR is calibrated per user.
+ * Derived from Banister's TRIMP (Training Impulse) concept:
+ *   Banister, E.W. (1991). Modeling elite athletic performance. In H.J. Green,
+ *   J.D. McDougal & H. Wenger (Eds.), Physiological Testing of Elite Athletes
+ *   (pp. 403–424). Human Kinetics.
+ *
+ * Formula: load = (duration_hours × hr_ratio) × 100
+ * where hr_ratio = avgHR / LTHR.
  *
  * @param durationSec  Duration in seconds
  * @param avgHrBpm     Average heart rate in bpm
@@ -159,23 +172,23 @@ export function getFormZone(tsb: number): FormZone {
 
 export const ZONE_LABELS: Record<FormZone, { label: string; advice: string }> = {
   peak: {
-    label: "Pico de forma",
-    advice: "Momento ideal para competição ou sessão de qualidade máxima.",
+    label: "Peak form",
+    advice: "Optimal window for racing or maximum-quality sessions (TSB > 10).",
   },
   fresh: {
-    label: "Em forma",
-    advice: "Pronto para treinos de qualidade — carga controlada.",
+    label: "Fresh",
+    advice: "Ready for quality work — maintain controlled load (0 < TSB ≤ 10).",
   },
   neutral: {
-    label: "Neutro",
-    advice: "Equilíbrio entre fitness e fadiga — carga sustentável.",
+    label: "Neutral",
+    advice: "Fitness and fatigue in balance — load is sustainable (−10 < TSB ≤ 0).",
   },
   fatigued: {
-    label: "Fadigado",
-    advice: "Fadiga acumulada — considere uma semana de recuperação.",
+    label: "Fatigued",
+    advice: "Accumulated fatigue — consider an easy recovery week (−30 < TSB ≤ −10).",
   },
   overreached: {
-    label: "Sobrecarga",
-    advice: "Reduza a carga imediatamente para evitar lesão.",
+    label: "Overreached",
+    advice: "Reduce load immediately to avoid injury or overtraining (TSB ≤ −30).",
   },
 };

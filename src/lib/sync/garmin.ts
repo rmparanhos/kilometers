@@ -128,19 +128,15 @@ export async function syncGarminActivities(
   userId: string,
   opts: SyncOptions = {}
 ): Promise<SyncResult> {
-  const { limit = 30, activityTypeKey = "running" } = opts;
+  const { limit = 200, activityTypeKey = "" } = opts;
 
   const gc = await createAuthenticatedClient();
 
   const allActivities = await gc.getActivities(0, limit);
-  console.log(allActivities)
-  // Filter by sport type
-  //const targetActivities = allActivities.filter(
-  //  (a) => a.activityType?.typeKey === activityTypeKey
-  //);
-  const targetActivities = allActivities.filter(
-      (a) => true
-    );
+
+  const targetActivities = activityTypeKey
+    ? allActivities.filter((a) => a.activityType?.typeKey === activityTypeKey)
+    : allActivities;
  
   const result: SyncResult = { imported: 0, skipped: 0, errors: [] };
 

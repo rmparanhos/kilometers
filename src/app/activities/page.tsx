@@ -30,14 +30,14 @@ export default async function ActivitiesPage() {
               Atividades
             </h1>
             <span className="text-sm text-gray-400">
-              {userActivities.length} no total
+              {userActivities.length} total
             </span>
           </div>
 
           {userActivities.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-200 bg-white px-8 py-12 text-center">
               <p className="text-sm text-gray-500">
-                Nenhuma atividade. Envie um arquivo .fit ou .gpx via API{" "}
+                No activities yet. Upload a .fit or .gpx file via{" "}
                 <code className="font-mono text-xs">POST /api/activities/upload</code>.
               </p>
             </div>
@@ -46,12 +46,12 @@ export default async function ActivitiesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-left">
-                    <th className="px-4 py-3 font-medium text-gray-500">Data</th>
-                    <th className="px-4 py-3 font-medium text-gray-500">Nome</th>
-                    <th className="px-4 py-3 font-medium text-gray-500">Distância</th>
-                    <th className="px-4 py-3 font-medium text-gray-500">Duração</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Date</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Name</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Distance</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Duration</th>
                     <th className="px-4 py-3 font-medium text-gray-500">Pace</th>
-                    <th className="px-4 py-3 font-medium text-gray-500">FC Média</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Avg HR</th>
                     <th className="px-4 py-3 font-medium text-gray-500">TSS</th>
                   </tr>
                 </thead>

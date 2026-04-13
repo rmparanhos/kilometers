@@ -36,7 +36,7 @@ export function GarminSyncButton() {
         router.refresh();
       }
     } catch {
-      setState({ status: "error", message: "Erro de conexão" });
+      setState({ status: "error", message: "Connection error" });
     }
   }
 
@@ -48,17 +48,17 @@ export function GarminSyncButton() {
         className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors shadow-sm"
       >
         <GarminIcon />
-        {state.status === "loading" ? "Sincronizando…" : "Sync Garmin"}
+        {state.status === "loading" ? "Syncing…" : "Sync Garmin"}
       </button>
 
       {state.status === "success" && (
         <p className="text-xs text-gray-500">
           {state.imported > 0
-            ? `${state.imported} importada${state.imported !== 1 ? "s" : ""}`
-            : "Tudo em dia"}
-          {state.skipped > 0 && ` · ${state.skipped} já existia${state.skipped !== 1 ? "m" : ""}`}
+            ? `${state.imported} imported`
+            : "Already up to date"}
+          {state.skipped > 0 && ` · ${state.skipped} skipped`}
           {state.errors > 0 && (
-            <span className="text-amber-600"> · {state.errors} erro{state.errors !== 1 ? "s" : ""}</span>
+            <span className="text-amber-600"> · {state.errors} error{state.errors !== 1 ? "s" : ""}</span>
           )}
         </p>
       )}

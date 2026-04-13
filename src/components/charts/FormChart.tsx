@@ -139,18 +139,18 @@ export function FormChart({
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-4">
         <StatCard label="Fitness (CTL)" value={currentCTL} color="#3b82f6" />
-        <StatCard label="Fadiga (ATL)" value={currentATL} color="#f97316" />
-        <StatCard label="Forma (TSB)" value={currentTSB} color={zoneColor} />
+        <StatCard label="Fatigue (ATL)" value={currentATL} color="#f97316" />
+        <StatCard label="Form (TSB)" value={currentTSB} color={zoneColor} />
       </div>
 
       {/* Chart */}
       <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-gray-900">
-            Gráfico de Forma
+            Performance Manager Chart
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            CTL = fitness · ATL = fadiga · TSB = forma (CTL − ATL)
+            CTL = fitness · ATL = fatigue · TSB = form (CTL − ATL)
           </p>
         </div>
 
@@ -192,7 +192,7 @@ export function FormChart({
             <Line
               type="monotone"
               dataKey="atl"
-              name="ATL (Fadiga)"
+              name="ATL (Fatigue)"
               stroke="#f97316"
               strokeWidth={2}
               dot={false}
@@ -201,7 +201,7 @@ export function FormChart({
             <Line
               type="monotone"
               dataKey="tsb"
-              name="TSB (Forma)"
+              name="TSB (Form)"
               stroke="#6366f1"
               strokeWidth={1.5}
               strokeDasharray="5 3"
@@ -211,6 +211,28 @@ export function FormChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Scientific references */}
+      <p className="text-xs text-gray-400 leading-relaxed">
+        Model based on the Banister impulse–response framework.{" "}
+        <a
+          href="https://doi.org/10.1152/jappl.1990.69.3.1171"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-gray-600"
+        >
+          Morton, Fitz-Clarke &amp; Banister (1990)
+        </a>
+        {" · "}
+        <a
+          href="https://doi.org/10.1007/s40279-017-0703-z"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-gray-600"
+        >
+          Bourdon et al. (2017)
+        </a>
+      </p>
     </div>
   );
 }

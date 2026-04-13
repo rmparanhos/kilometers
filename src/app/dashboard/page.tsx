@@ -51,8 +51,8 @@ export default async function DashboardPage() {
               </h1>
               <p className="mt-1 text-sm text-gray-500">
                 {hasData
-                  ? `${userActivities.length} atividade${userActivities.length !== 1 ? "s" : ""} registrada${userActivities.length !== 1 ? "s" : ""}`
-                  : "Nenhuma atividade ainda"}
+                  ? `${userActivities.length} activit${userActivities.length !== 1 ? "ies" : "y"} recorded`
+                  : "No activities yet"}
               </p>
             </div>
             {process.env.GARMIN_EMAIL && <GarminSyncButton />}
@@ -80,18 +80,18 @@ function EmptyState() {
     <div className="rounded-xl border border-dashed border-gray-200 bg-white px-8 py-16 text-center">
       <p className="text-4xl">🏃</p>
       <h2 className="mt-4 text-base font-semibold text-gray-900">
-        Nenhuma atividade ainda
+        No activities yet
       </h2>
       <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-        Envie um arquivo <code className="font-mono">.fit</code> ou{" "}
-        <code className="font-mono">.gpx</code> para começar a acompanhar seu
-        fitness, fadiga e forma.
+        Upload a <code className="font-mono">.fit</code> or{" "}
+        <code className="font-mono">.gpx</code> file to start tracking your
+        fitness, fatigue, and form.
       </p>
       <a
         href="/activities"
         className="mt-6 inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
       >
-        Ir para Atividades
+        Go to Activities
       </a>
     </div>
   );
