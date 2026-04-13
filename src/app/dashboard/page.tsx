@@ -7,6 +7,7 @@ import { eq, asc } from "drizzle-orm";
 import { fillGaps, computeFormSeries, getFormZone } from "@/lib/training/metrics";
 import { FormChart } from "@/components/charts/FormChart";
 import { Header } from "@/components/layout/Header";
+import { GarminSyncButton } from "@/components/layout/GarminSyncButton";
 import type { FormPoint } from "@/lib/training/metrics";
 
 export default async function DashboardPage() {
@@ -43,15 +44,18 @@ export default async function DashboardPage() {
       <Header />
       <main className="min-h-screen bg-gray-50">
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-              Dashboard
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              {hasData
-                ? `${userActivities.length} atividade${userActivities.length !== 1 ? "s" : ""} registrada${userActivities.length !== 1 ? "s" : ""}`
-                : "Nenhuma atividade ainda"}
-            </p>
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+                Dashboard
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                {hasData
+                  ? `${userActivities.length} atividade${userActivities.length !== 1 ? "s" : ""} registrada${userActivities.length !== 1 ? "s" : ""}`
+                  : "Nenhuma atividade ainda"}
+              </p>
+            </div>
+            {process.env.GARMIN_EMAIL && <GarminSyncButton />}
           </div>
 
           {hasData ? (
