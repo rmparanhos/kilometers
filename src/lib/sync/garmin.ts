@@ -55,7 +55,12 @@ async function createAuthenticatedClient(): Promise<GarminConnect> {
     );
   }
 
-  const gc = new GarminConnect(undefined);
+  const gc = new GarminConnect({
+    username: email,
+    password: password
+});
+
+  
 
   // Try to reuse a cached token to avoid re-authenticating every time
   if (fs.existsSync(TOKEN_PATH)) {
@@ -128,12 +133,15 @@ export async function syncGarminActivities(
   const gc = await createAuthenticatedClient();
 
   const allActivities = await gc.getActivities(0, limit);
-
+  console.log(allActivities)
   // Filter by sport type
+  //const targetActivities = allActivities.filter(
+  //  (a) => a.activityType?.typeKey === activityTypeKey
+  //);
   const targetActivities = allActivities.filter(
-    (a) => a.activityType?.typeKey === activityTypeKey
-  );
-
+      (a) => true
+    );
+ 
   const result: SyncResult = { imported: 0, skipped: 0, errors: [] };
 
   for (const garminActivity of targetActivities) {

@@ -38,6 +38,7 @@ yarn-error.log*
 /db/local.db
 /db/*.db-shm
 /db/*.db-wal
+/db/garmin-token.json
 
 # vercel
 .vercel
