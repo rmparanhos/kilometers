@@ -33,6 +33,7 @@ export interface FormPoint {
   ctl: number;
   atl: number;
   tsb: number;
+  hasActivity: boolean; // true when daily training load > 0
 }
 
 // Contextual zone based on TSB
@@ -73,6 +74,7 @@ export function computeFormSeries(loads: DailyLoad[]): FormPoint[] {
       ctl: Math.round(ctl * 10) / 10,
       atl: Math.round(atl * 10) / 10,
       tsb: Math.round((ctl - atl) * 10) / 10,
+      hasActivity: load > 0,
     };
   });
 }

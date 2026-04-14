@@ -31,12 +31,35 @@ interface FormChartProps {
 // ---------------------------------------------------------------------------
 
 const ZONE_COLORS: Record<FormZone, string> = {
-  peak: "#22c55e",      // green-500
-  fresh: "#84cc16",     // lime-500
-  neutral: "#f59e0b",   // amber-500
-  fatigued: "#f97316",  // orange-500
+  peak: "#22c55e",        // green-500
+  fresh: "#84cc16",       // lime-500
+  neutral: "#f59e0b",     // amber-500
+  fatigued: "#f97316",    // orange-500
   overreached: "#ef4444", // red-500
 };
+
+// ---------------------------------------------------------------------------
+// Activity dot — rendered on the CTL line only on days with a workout
+// ---------------------------------------------------------------------------
+
+function ActivityDot(props: {
+  cx?: number;
+  cy?: number;
+  payload?: FormPoint;
+}) {
+  const { cx, cy, payload } = props;
+  if (!payload?.hasActivity || cx == null || cy == null) return <g />;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={3.5}
+      fill="#3b82f6"
+      stroke="white"
+      strokeWidth={1.5}
+    />
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Custom tooltip
@@ -48,14 +71,22 @@ function FormTooltip({
   label,
 }: {
   active?: boolean;
-  payload?: { name: string; value: number; color: string }[];
+  payload?: { name: string; value: number; color: string; payload: FormPoint }[];
   label?: string;
 }) {
   if (!active || !payload?.length) return null;
 
+  const hasActivity = payload[0]?.payload?.hasActivity;
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-md text-sm">
       <p className="mb-2 font-medium text-gray-600">{label}</p>
+      {hasActivity && (
+        <p className="mb-2 flex items-center gap-1.5 text-xs text-blue-500 font-medium">
+          <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+          Activity logged
+        </p>
+      )}
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2">
           <span
@@ -109,10 +140,14 @@ export function FormChart({
   const zoneInfo = ZONE_LABELS[currentZone];
   const zoneColor = ZONE_COLORS[currentZone];
 
-  // Thin the data for large series: show at most one point per week
+  // Thin the data for large series: keep one point per week, but always
+  // preserve days with activities so the activity dots are never hidden.
   const displaySeries =
     series.length > 180
-      ? series.filter((_, i) => i % 7 === 0 || i === series.length - 1)
+      ? series.filter(
+          (p, i) =>
+            i % 7 === 0 || i === series.length - 1 || p.hasActivity
+        )
       : series;
 
   return (
@@ -150,7 +185,7 @@ export function FormChart({
             Performance Manager Chart
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            CTL = fitness · ATL = fatigue · TSB = form (CTL − ATL)
+            CTL = fitness · ATL = fatigue · TSB = form (CTL − ATL) · dots = activities
           </p>
         </div>
 
@@ -186,7 +221,7 @@ export function FormChart({
               name="CTL (Fitness)"
               stroke="#3b82f6"
               strokeWidth={2}
-              dot={false}
+              dot={<ActivityDot />}
               activeDot={{ r: 4 }}
             />
             <Line
