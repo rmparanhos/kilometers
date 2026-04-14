@@ -213,11 +213,11 @@ export const ZONE_LABELS: Record<FormZone, { label: string; advice: string }> = 
     advice: "Fitness and fatigue in balance — load is sustainable (−10 < TSB ≤ 0).",
   },
   fatigued: {
-    label: "Fatigued",
-    advice: "Accumulated fatigue — consider an easy recovery week (−30 < TSB ≤ −10).",
+    label: "Optimal load",
+    advice: "Prime adaptation window — fitness is being built; monitor recovery closely (−30 < TSB ≤ −10).",
   },
   overreached: {
-    label: "Overreached",
-    advice: "Reduce load immediately to avoid injury or overtraining (TSB ≤ −30).",
+    label: "High risk",
+    advice: "Reduce load immediately — overtraining and injury risk are elevated (TSB ≤ −30).",
   },
 };

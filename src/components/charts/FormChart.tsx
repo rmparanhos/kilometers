@@ -206,7 +206,7 @@ export function FormChart({
             Performance Manager Chart
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            CTL = fitness · ATL = fatigue · TSB = form · ▲ = activity · green band = race window · red band = overtraining
+            CTL = fitness · ATL = fatigue · TSB = form · ▲ = activity · green = race window · amber = optimal load · red = high risk
           </p>
         </div>
 
@@ -242,13 +242,21 @@ export function FormChart({
               fillOpacity={0.07}
               label={{ value: "race window", position: "insideTopRight", fontSize: 10, fill: "#16a34a" }}
             />
-            {/* Overtraining zone: TSB ≤ -30 */}
+            {/* Optimal training zone: TSB -10 to -30 */}
+            <ReferenceArea
+              y1={-30}
+              y2={-10}
+              fill="#f59e0b"
+              fillOpacity={0.08}
+              label={{ value: "optimal load", position: "insideBottomRight", fontSize: 10, fill: "#d97706" }}
+            />
+            {/* High risk zone: TSB ≤ -30 */}
             <ReferenceArea
               y1={-200}
               y2={-30}
               fill="#ef4444"
               fillOpacity={0.07}
-              label={{ value: "overtraining", position: "insideBottomRight", fontSize: 10, fill: "#dc2626" }}
+              label={{ value: "high risk", position: "insideBottomRight", fontSize: 10, fill: "#dc2626" }}
             />
             {/* Zero baseline */}
             <ReferenceLine y={0} stroke="#e5e7eb" strokeDasharray="4 4" />
