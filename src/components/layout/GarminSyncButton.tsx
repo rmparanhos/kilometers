@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+type SyncError = { activityId: number; message: string };
+
 type SyncState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "success"; imported: number; skipped: number; errors: number }
+  | { status: "success"; imported: number; skipped: number; errors: SyncError[] }
   | { status: "error"; message: string };
 
 export function GarminSyncButton() {
@@ -29,7 +31,7 @@ export function GarminSyncButton() {
         status: "success",
         imported: data.imported,
         skipped: data.skipped,
-        errors: data.errors?.length ?? 0,
+        errors: data.errors ?? [],
       });
 
       if (data.imported > 0) {
@@ -52,15 +54,23 @@ export function GarminSyncButton() {
       </button>
 
       {state.status === "success" && (
-        <p className="text-xs text-gray-500">
-          {state.imported > 0
-            ? `${state.imported} imported`
-            : "Already up to date"}
-          {state.skipped > 0 && ` · ${state.skipped} skipped`}
-          {state.errors > 0 && (
-            <span className="text-amber-600"> · {state.errors} error{state.errors !== 1 ? "s" : ""}</span>
+        <div className="text-xs text-gray-500 space-y-0.5">
+          <p>
+            {state.imported > 0
+              ? `${state.imported} imported`
+              : "Already up to date"}
+            {state.skipped > 0 && ` · ${state.skipped} skipped`}
+            {state.errors.length > 0 && (
+              <span className="text-amber-600"> · {state.errors.length} error{state.errors.length !== 1 ? "s" : ""}</span>
+            )}
+          </p>
+          {state.errors.length > 0 && (
+            <p className="text-amber-600 font-mono">
+              {state.errors[0].activityId}: {state.errors[0].message}
+              {state.errors.length > 1 && ` (+${state.errors.length - 1} more — see server log)`}
+            </p>
           )}
-        </p>
+        </div>
       )}
 
       {state.status === "error" && (

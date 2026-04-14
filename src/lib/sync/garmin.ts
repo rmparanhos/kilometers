@@ -185,11 +185,18 @@ export async function syncGarminActivities(
       db.insert(activities).values(insertData).run();
       result.imported++;
     } catch (err) {
-      result.errors.push({
-        activityId: garminActivity.activityId,
-        message: err instanceof Error ? err.message : "Unknown error",
-      });
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error(
+        `[garmin-sync] activity ${garminActivity.activityId} (${garminActivity.activityName ?? "unnamed"}): ${message}`
+      );
+      result.errors.push({ activityId: garminActivity.activityId, message });
     }
+  }
+
+  if (result.errors.length > 0) {
+    console.warn(
+      `[garmin-sync] finished with ${result.errors.length} error(s). First: ${result.errors[0].message}`
+    );
   }
 
   return result;
