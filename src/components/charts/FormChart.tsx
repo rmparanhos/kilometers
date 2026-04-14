@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
   ReferenceLine,
+  ReferenceArea,
   ResponsiveContainer,
 } from "recharts";
 import type { FormPoint, FormZone } from "@/lib/training/metrics";
@@ -185,7 +186,7 @@ export function FormChart({
             Performance Manager Chart
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            CTL = fitness · ATL = fatigue · TSB = form (CTL − ATL) · dots = activities
+            CTL = fitness · ATL = fatigue · TSB = form (CTL − ATL) · dots = activities · shaded band = race window (TSB 5–25)
           </p>
         </div>
 
@@ -211,6 +212,19 @@ export function FormChart({
             <Tooltip content={<FormTooltip />} />
             <Legend
               wrapperStyle={{ fontSize: 12, color: "#6b7280", paddingTop: 12 }}
+            />
+            {/* Sweet spot: TSB 5–25 — race-ready window */}
+            <ReferenceArea
+              y1={5}
+              y2={25}
+              fill="#22c55e"
+              fillOpacity={0.07}
+              label={{
+                value: "race window",
+                position: "insideTopRight",
+                fontSize: 10,
+                fill: "#16a34a",
+              }}
             />
             {/* Zero baseline for TSB context */}
             <ReferenceLine y={0} stroke="#e5e7eb" strokeDasharray="4 4" />
