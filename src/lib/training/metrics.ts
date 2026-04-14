@@ -25,6 +25,8 @@ import { addDays, startOfDay, format, isAfter } from "date-fns";
 export interface DailyLoad {
   date: Date;
   load: number;
+  distanceM?: number;
+  durationSec?: number;
 }
 
 export interface FormPoint {
@@ -33,7 +35,10 @@ export interface FormPoint {
   ctl: number;
   atl: number;
   tsb: number;
-  hasActivity: boolean; // true when daily training load > 0
+  hasActivity: boolean;    // true when daily training load > 0
+  distanceM?: number;      // total distance for the day (sum across activities)
+  durationSec?: number;    // total duration for the day
+  avgPaceMperS?: number;   // derived: distanceM / durationSec
 }
 
 // Contextual zone based on TSB
@@ -65,9 +70,13 @@ export function computeFormSeries(loads: DailyLoad[]): FormPoint[] {
   let ctl = 0;
   let atl = 0;
 
-  return loads.map(({ date, load }) => {
+  return loads.map(({ date, load, distanceM, durationSec }) => {
     ctl = ctl + (load - ctl) * CTL_DECAY;
     atl = atl + (load - atl) * ATL_DECAY;
+    const avgPaceMperS =
+      distanceM && durationSec && durationSec > 0
+        ? distanceM / durationSec
+        : undefined;
     return {
       date,
       dateLabel: format(date, "yyyy-MM-dd"),
@@ -75,6 +84,9 @@ export function computeFormSeries(loads: DailyLoad[]): FormPoint[] {
       atl: Math.round(atl * 10) / 10,
       tsb: Math.round((ctl - atl) * 10) / 10,
       hasActivity: load > 0,
+      distanceM: distanceM ?? undefined,
+      durationSec: durationSec ?? undefined,
+      avgPaceMperS,
     };
   });
 }
@@ -91,16 +103,26 @@ export function computeFormSeries(loads: DailyLoad[]): FormPoint[] {
  * @param endDate     Last date to include (defaults to today)
  */
 export function fillGaps(
-  activities: { startedAt: Date; trainingLoad: number | null }[],
+  activities: {
+    startedAt: Date;
+    trainingLoad: number | null;
+    distanceM?: number | null;
+    durationSec?: number | null;
+  }[],
   endDate: Date = new Date()
 ): DailyLoad[] {
   if (activities.length === 0) return [];
 
   // Aggregate by calendar day
-  const byDay = new Map<string, number>();
+  const byDay = new Map<string, { load: number; distanceM: number; durationSec: number }>();
   for (const act of activities) {
     const key = format(startOfDay(act.startedAt), "yyyy-MM-dd");
-    byDay.set(key, (byDay.get(key) ?? 0) + (act.trainingLoad ?? 0));
+    const prev = byDay.get(key) ?? { load: 0, distanceM: 0, durationSec: 0 };
+    byDay.set(key, {
+      load: prev.load + (act.trainingLoad ?? 0),
+      distanceM: prev.distanceM + (act.distanceM ?? 0),
+      durationSec: prev.durationSec + (act.durationSec ?? 0),
+    });
   }
 
   // Determine range
@@ -115,7 +137,12 @@ export function fillGaps(
   let current = first;
   while (!isAfter(current, end)) {
     const key = format(current, "yyyy-MM-dd");
-    result.push({ date: current, load: byDay.get(key) ?? 0 });
+    const day = byDay.get(key);
+    result.push(
+      day
+        ? { date: current, load: day.load, distanceM: day.distanceM, durationSec: day.durationSec }
+        : { date: current, load: 0 }
+    );
     current = addDays(current, 1);
   }
 

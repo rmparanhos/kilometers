@@ -21,6 +21,8 @@ export default async function DashboardPage() {
     .select({
       startedAt: activities.startedAt,
       trainingLoad: activities.trainingLoad,
+      distanceM: activities.distanceM,
+      durationSec: activities.durationSec,
     })
     .from(activities)
     .where(eq(activities.userId, userId))

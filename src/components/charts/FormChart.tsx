@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import type { FormPoint, FormZone } from "@/lib/training/metrics";
 import { ZONE_LABELS } from "@/lib/training/metrics";
+import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,21 +41,16 @@ const ZONE_COLORS: Record<FormZone, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Activity dot — rendered on the CTL line only on days with a workout
+// Activity marker — small triangle on the CTL line for days with a workout
 // ---------------------------------------------------------------------------
 
-function ActivityDot(props: {
-  cx?: number;
-  cy?: number;
-  payload?: FormPoint;
-}) {
+function ActivityDot(props: { cx?: number; cy?: number; payload?: FormPoint }) {
   const { cx, cy, payload } = props;
   if (!payload?.hasActivity || cx == null || cy == null) return <g />;
+  const s = 4;
   return (
-    <circle
-      cx={cx}
-      cy={cy}
-      r={3.5}
+    <polygon
+      points={`${cx},${cy - s} ${cx + s},${cy + s} ${cx - s},${cy + s}`}
       fill="#3b82f6"
       stroke="white"
       strokeWidth={1.5}
@@ -77,25 +73,50 @@ function FormTooltip({
 }) {
   if (!active || !payload?.length) return null;
 
-  const hasActivity = payload[0]?.payload?.hasActivity;
+  const point = payload[0]?.payload;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-md text-sm">
+    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-md text-sm min-w-[180px]">
       <p className="mb-2 font-medium text-gray-600">{label}</p>
-      {hasActivity && (
-        <p className="mb-2 flex items-center gap-1.5 text-xs text-blue-500 font-medium">
-          <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
-          Activity logged
-        </p>
+
+      {/* Activity details */}
+      {point?.hasActivity && (
+        <div className="mb-3 pb-2 border-b border-gray-100">
+          <p className="text-xs font-semibold text-blue-600 mb-1.5 flex items-center gap-1">
+            <span>▲</span> Activity
+          </p>
+          <div className="space-y-0.5 text-xs text-gray-600">
+            {point.distanceM != null && (
+              <p className="flex justify-between gap-4">
+                <span className="text-gray-400">Distance</span>
+                <span className="font-medium">{formatDistance(point.distanceM)}</span>
+              </p>
+            )}
+            {point.durationSec != null && (
+              <p className="flex justify-between gap-4">
+                <span className="text-gray-400">Duration</span>
+                <span className="font-medium">{formatDuration(point.durationSec)}</span>
+              </p>
+            )}
+            {point.avgPaceMperS != null && (
+              <p className="flex justify-between gap-4">
+                <span className="text-gray-400">Pace</span>
+                <span className="font-medium">{formatPace(point.avgPaceMperS)}</span>
+              </p>
+            )}
+          </div>
+        </div>
       )}
+
+      {/* PMC values */}
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2">
           <span
-            className="inline-block h-2 w-2 rounded-full"
+            className="inline-block h-2 w-2 rounded-full flex-shrink-0"
             style={{ backgroundColor: p.color }}
           />
           <span className="text-gray-500">{p.name}:</span>
-          <span className="font-medium text-gray-900">{p.value.toFixed(1)}</span>
+          <span className="font-medium text-gray-900 ml-auto">{p.value.toFixed(1)}</span>
         </div>
       ))}
     </div>
@@ -142,12 +163,11 @@ export function FormChart({
   const zoneColor = ZONE_COLORS[currentZone];
 
   // Thin the data for large series: keep one point per week, but always
-  // preserve days with activities so the activity dots are never hidden.
+  // preserve days with activities so no activity marker is lost.
   const displaySeries =
     series.length > 180
       ? series.filter(
-          (p, i) =>
-            i % 7 === 0 || i === series.length - 1 || p.hasActivity
+          (p, i) => i % 7 === 0 || i === series.length - 1 || p.hasActivity
         )
       : series;
 
@@ -186,7 +206,7 @@ export function FormChart({
             Performance Manager Chart
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            CTL = fitness · ATL = fatigue · TSB = form (CTL − ATL) · dots = activities · shaded band = race window (TSB 5–25)
+            CTL = fitness · ATL = fatigue · TSB = form · ▲ = activity · green band = race window · red band = overtraining
           </p>
         </div>
 
@@ -213,20 +233,24 @@ export function FormChart({
             <Legend
               wrapperStyle={{ fontSize: 12, color: "#6b7280", paddingTop: 12 }}
             />
-            {/* Sweet spot: TSB 5–25 — race-ready window */}
+
+            {/* Race window: TSB 5–25 */}
             <ReferenceArea
               y1={5}
               y2={25}
               fill="#22c55e"
               fillOpacity={0.07}
-              label={{
-                value: "race window",
-                position: "insideTopRight",
-                fontSize: 10,
-                fill: "#16a34a",
-              }}
+              label={{ value: "race window", position: "insideTopRight", fontSize: 10, fill: "#16a34a" }}
             />
-            {/* Zero baseline for TSB context */}
+            {/* Overtraining zone: TSB ≤ -30 */}
+            <ReferenceArea
+              y1={-200}
+              y2={-30}
+              fill="#ef4444"
+              fillOpacity={0.07}
+              label={{ value: "overtraining", position: "insideBottomRight", fontSize: 10, fill: "#dc2626" }}
+            />
+            {/* Zero baseline */}
             <ReferenceLine y={0} stroke="#e5e7eb" strokeDasharray="4 4" />
 
             <Line
