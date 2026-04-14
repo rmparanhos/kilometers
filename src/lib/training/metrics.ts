@@ -154,15 +154,50 @@ export function fillGaps(
 // ---------------------------------------------------------------------------
 
 /**
- * Estimates hrTSS for a single activity using a simplified TRIMP-based formula.
+ * Banister TRIMP (Training Impulse) — the original impulse–response model.
  *
- * Derived from Banister's TRIMP (Training Impulse) concept:
+ * Reference:
  *   Banister, E.W. (1991). Modeling elite athletic performance. In H.J. Green,
  *   J.D. McDougal & H. Wenger (Eds.), Physiological Testing of Elite Athletes
  *   (pp. 403–424). Human Kinetics.
  *
- * Formula: load = (duration_hours × hr_ratio) × 100
- * where hr_ratio = avgHR / LTHR.
+ * Formula:
+ *   TRIMP = duration_min × HRr × 0.64 × e^(1.92 × HRr)
+ *   HRr   = (avgHR − HRrest) / (HRmax − HRrest)   [Karvonen heart rate reserve]
+ *
+ * The exponential component reflects the non-linear metabolic cost of
+ * high-intensity exercise (lactate, catecholamines). Constant 0.64 and
+ * exponent 1.92 are empirical fits from Banister's original data (men).
+ *
+ * @param durationSec  Duration in seconds
+ * @param avgHrBpm     Average heart rate in bpm
+ * @param hrMax        Maximum heart rate in bpm
+ * @param hrRest       Resting heart rate in bpm
+ */
+export function estimateBanisterTRIMP(
+  durationSec: number,
+  avgHrBpm: number,
+  hrMax: number,
+  hrRest: number
+): number {
+  const durationMin = durationSec / 60;
+  const hrr = Math.max(0, Math.min(1, (avgHrBpm - hrRest) / (hrMax - hrRest)));
+  return Math.round(durationMin * hrr * 0.64 * Math.exp(1.92 * hrr) * 10) / 10;
+}
+
+/**
+ * Simplified linear hrTSS — a practical approximation for use when only
+ * lactate threshold HR is known (no HRmax/HRrest).
+ *
+ * Reference:
+ *   Manzi, V. et al. (2009). Dose-response relationship of autonomic nervous
+ *   system responses to individualized training impulse in marathon runners.
+ *   American Journal of Physiology, 296(6), H1733–H1740.
+ *   https://doi.org/10.1152/ajpheart.00054.2009
+ *
+ * Formula: load = duration_hours × (avgHR / LTHR) × 100
+ * A 1-hour effort at exactly LTHR scores 100 — analogous to Coggan's TSS
+ * definition for cycling power.
  *
  * @param durationSec  Duration in seconds
  * @param avgHrBpm     Average heart rate in bpm
@@ -174,17 +209,46 @@ export function estimateHrTSS(
   lthrBpm = 170
 ): number {
   const durationHours = durationSec / 3600;
-  const hrRatio = avgHrBpm / lthrBpm;
-  return Math.round(durationHours * hrRatio * 100 * 10) / 10;
+  return Math.round(durationHours * (avgHrBpm / lthrBpm) * 100 * 10) / 10;
 }
 
 /**
- * Fallback training load estimate when HR data is unavailable.
- * Uses duration only, assuming a moderate effort of 60 TSS/hour.
+ * Fallback training load estimate when no HR data is available.
+ * Assumes a moderate aerobic effort of 60 TSS/hour.
  */
 export function estimateLoadFromDuration(durationSec: number): number {
-  const durationHours = durationSec / 3600;
-  return Math.round(durationHours * 60 * 10) / 10;
+  return Math.round((durationSec / 3600) * 60 * 10) / 10;
+}
+
+/**
+ * User heart rate profile — drives model selection in estimateTrainingLoad.
+ */
+export interface HrProfile {
+  hrMax?: number | null;
+  hrRest?: number | null;
+  lthrBpm?: number | null;
+}
+
+/**
+ * Smart training load selector.
+ *
+ * Priority:
+ *   1. Banister TRIMP (1991)  — when avgHR + hrMax + hrRest are all known
+ *   2. Linear hrTSS (Manzi)   — when avgHR + lthrBpm are known
+ *   3. Duration fallback       — when no HR data is available
+ */
+export function estimateTrainingLoad(
+  durationSec: number,
+  avgHrBpm: number | null | undefined,
+  profile: HrProfile = {}
+): number {
+  if (avgHrBpm != null && profile.hrMax && profile.hrRest) {
+    return estimateBanisterTRIMP(durationSec, avgHrBpm, profile.hrMax, profile.hrRest);
+  }
+  if (avgHrBpm != null) {
+    return estimateHrTSS(durationSec, avgHrBpm, profile.lthrBpm ?? 170);
+  }
+  return estimateLoadFromDuration(durationSec);
 }
 
 // ---------------------------------------------------------------------------

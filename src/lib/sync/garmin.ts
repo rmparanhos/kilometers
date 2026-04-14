@@ -13,14 +13,11 @@ import fs from "node:fs";
 import AdmZip from "adm-zip";
 import { GarminConnect } from "garmin-connect";
 import { db } from "@/lib/db";
-import { activities } from "@/lib/db/schema";
+import { activities, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { parseFitBuffer, extractActivityFromFit } from "@/lib/parsers/fit";
 import { normalizeToActivityInsert } from "@/lib/parsers/normalize";
-import {
-  estimateHrTSS,
-  estimateLoadFromDuration,
-} from "@/lib/training/metrics";
+import { estimateTrainingLoad } from "@/lib/training/metrics";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -131,6 +128,8 @@ export async function syncGarminActivities(
   const { limit = 200, activityTypeKey = "" } = opts;
 
   const gc = await createAuthenticatedClient();
+  const userProfile = db.select({ hrMax: users.hrMax, hrRest: users.hrRest, lthrBpm: users.lthrBpm })
+    .from(users).where(eq(users.id, userId)).get() ?? {};
 
   const allActivities = await gc.getActivities(0, limit);
 
@@ -165,10 +164,11 @@ export async function syncGarminActivities(
       const fitData = await parseFitBuffer(fitBuffer);
       const parsed = extractActivityFromFit(fitData);
 
-      const trainingLoad =
-        parsed.avgHeartRateBpm != null
-          ? estimateHrTSS(parsed.durationSec, parsed.avgHeartRateBpm)
-          : estimateLoadFromDuration(parsed.durationSec);
+      const trainingLoad = estimateTrainingLoad(
+        parsed.durationSec,
+        parsed.avgHeartRateBpm,
+        userProfile
+      );
 
       const insertData = normalizeToActivityInsert(parsed, userId, {
         sourceFile: `${garminActivity.activityId}.fit`,

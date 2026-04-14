@@ -10,6 +10,10 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   hashedPassword: text("hashed_password").notNull(),
   name: text("name"),
+  // Heart rate profile — used for TRIMP calculation
+  hrMax: integer("hr_max"),   // bpm; enables Banister TRIMP (1991)
+  hrRest: integer("hr_rest"), // bpm; resting HR for Karvonen HRr
+  lthrBpm: integer("lthr_bpm"), // bpm; lactate threshold HR for linear hrTSS
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

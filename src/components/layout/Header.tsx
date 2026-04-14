@@ -20,13 +20,19 @@ export async function Header() {
             href="/activities"
             className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
           >
-            Atividades
+            Activities
           </Link>
           <Link
             href="/equipment"
             className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
           >
-            Equipamentos
+            Equipment
+          </Link>
+          <Link
+            href="/profile"
+            className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            Profile
           </Link>
         </nav>
 

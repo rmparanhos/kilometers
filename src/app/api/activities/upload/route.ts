@@ -2,14 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { db } from "@/lib/db";
-import { activities } from "@/lib/db/schema";
+import { activities, users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { parseFitBuffer, extractActivityFromFit } from "@/lib/parsers/fit";
 import { parseGpxString, extractActivityFromGpx } from "@/lib/parsers/gpx";
 import { normalizeToActivityInsert } from "@/lib/parsers/normalize";
-import {
-  estimateHrTSS,
-  estimateLoadFromDuration,
-} from "@/lib/training/metrics";
+import { estimateTrainingLoad } from "@/lib/training/metrics";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -18,6 +16,8 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = (session.user as { id: string }).id;
+  const userProfile = db.select({ hrMax: users.hrMax, hrRest: users.hrRest, lthrBpm: users.lthrBpm })
+    .from(users).where(eq(users.id, userId)).get() ?? {};
 
   let formData: FormData;
   try {
@@ -58,11 +58,11 @@ export async function POST(req: NextRequest) {
       parsed = extractActivityFromGpx(gpxData);
     }
 
-    // Calculate training load (hrTSS if HR available, else duration-based estimate)
-    const trainingLoad =
-      parsed.avgHeartRateBpm != null
-        ? estimateHrTSS(parsed.durationSec, parsed.avgHeartRateBpm)
-        : estimateLoadFromDuration(parsed.durationSec);
+    const trainingLoad = estimateTrainingLoad(
+      parsed.durationSec,
+      parsed.avgHeartRateBpm,
+      userProfile
+    );
 
     const insertData = normalizeToActivityInsert(parsed, userId, {
       sourceFile: file.name,
