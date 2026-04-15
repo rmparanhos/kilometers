@@ -3,6 +3,7 @@ import { activities } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { fillGaps, computeFormSeries, getFormZone, bestVO2maxEstimate } from "@/lib/training/metrics";
 import { FormChart } from "@/components/charts/FormChart";
+import { HeatmapCalendar } from "@/components/charts/HeatmapCalendar";
 import { Header } from "@/components/layout/Header";
 import { GarminSyncButton } from "@/components/layout/GarminSyncButton";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -77,14 +78,17 @@ export default async function DashboardPage() {
           </div>
 
           {hasData ? (
-            <FormChart
-              series={series}
-              currentZone={currentZone}
-              currentCTL={currentCTL}
-              currentATL={currentATL}
-              currentTSB={currentTSB}
-              vo2max={vo2max}
-            />
+            <>
+              <FormChart
+                series={series}
+                currentZone={currentZone}
+                currentCTL={currentCTL}
+                currentATL={currentATL}
+                currentTSB={currentTSB}
+                vo2max={vo2max}
+              />
+              <HeatmapCalendar activities={userActivities} />
+            </>
           ) : (
             <EmptyState />
           )}
