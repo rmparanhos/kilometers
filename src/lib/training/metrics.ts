@@ -281,25 +281,113 @@ export function getFormZone(tsb: number): FormZone {
   return "overreached";
 }
 
-export const ZONE_LABELS: Record<FormZone, { label: string; advice: string }> = {
+export const ZONE_LABELS: Record<FormZone, { label: string; advice: string; emoji: string }> = {
   peak: {
+    emoji: "🏆",
     label: "Peak form",
     advice: "Optimal window for racing or maximum-quality sessions (TSB > 10).",
   },
   fresh: {
+    emoji: "💪",
     label: "Fresh",
     advice: "Ready for quality work — maintain controlled load (0 < TSB ≤ 10).",
   },
   neutral: {
+    emoji: "⚖️",
     label: "Neutral",
     advice: "Fitness and fatigue in balance — load is sustainable (−10 < TSB ≤ 0).",
   },
   fatigued: {
+    emoji: "🔥",
     label: "Optimal load",
     advice: "Prime adaptation window — fitness is being built; monitor recovery closely (−30 < TSB ≤ −10).",
   },
   overreached: {
+    emoji: "⚠️",
     label: "High risk",
     advice: "Reduce load immediately — overtraining and injury risk are elevated (TSB ≤ −30).",
   },
 };
+
+// ---------------------------------------------------------------------------
+// VO2max estimation
+// ---------------------------------------------------------------------------
+
+/**
+ * Estimates VO2max (mL/kg/min) from a submaximal running effort using:
+ *
+ * 1. ACSM oxygen cost of level running:
+ *      VO2_run = 0.2 × speed_m/min + 3.5
+ *    American College of Sports Medicine (2010). ACSM's Guidelines for Exercise
+ *    Testing and Prescription (8th ed.). Lippincott Williams & Wilkins.
+ *
+ * 2. %HRR ≈ %VO2max (Swain et al., 1994):
+ *      %HRR = (avgHR − HRrest) / (HRmax − HRrest)
+ *    Swain, D.P. et al. (1994). Target HR for the development of cardiovascular
+ *    fitness. Medicine & Science in Sports & Exercise, 26(1), 112–116.
+ *    https://doi.org/10.1249/00005768-199401000-00019
+ *
+ * Reliability is highest at submaximal efforts (HRR 50–90 %). Returns null
+ * when inputs are invalid or HRR is outside the reliable range.
+ *
+ * @param speedMperS   Average running speed in m/s
+ * @param avgHrBpm     Average heart rate during the effort (bpm)
+ * @param hrMax        Maximum heart rate (bpm)
+ * @param hrRest       Resting heart rate (bpm)
+ */
+export function estimateVO2maxFromRun(
+  speedMperS: number,
+  avgHrBpm: number,
+  hrMax: number,
+  hrRest: number
+): number | null {
+  if (hrMax <= hrRest || avgHrBpm <= hrRest || avgHrBpm >= hrMax) return null;
+
+  const speedMperMin = speedMperS * 60;
+  const vo2Run = 0.2 * speedMperMin + 3.5; // mL/kg/min
+
+  const hrr = (avgHrBpm - hrRest) / (hrMax - hrRest); // fraction 0–1
+  if (hrr < 0.4 || hrr > 0.97) return null; // outside reliable submaximal range
+
+  const vo2max = vo2Run / hrr;
+  return Math.round(vo2max * 10) / 10;
+}
+
+/**
+ * Derives a best VO2max estimate from a list of running activities.
+ * Takes the 90th-percentile estimate across all valid efforts (highest
+ * credible value, not an outlier from sensor noise).
+ */
+export function bestVO2maxEstimate(
+  acts: {
+    avgPaceMperS: number | null;
+    avgHeartRateBpm: number | null;
+    distanceM: number;
+    durationSec: number;
+  }[],
+  profile: HrProfile
+): number | null {
+  if (!profile.hrMax || !profile.hrRest) return null;
+
+  const estimates: number[] = [];
+  for (const act of acts) {
+    if (!act.avgPaceMperS || !act.avgHeartRateBpm) continue;
+    if (act.durationSec < 600) continue; // ignore efforts < 10 min (unreliable)
+    const est = estimateVO2maxFromRun(
+      act.avgPaceMperS,
+      act.avgHeartRateBpm,
+      profile.hrMax,
+      profile.hrRest
+    );
+    if (est != null) estimates.push(est);
+  }
+
+  if (estimates.length === 0) return null;
+  estimates.sort((a, b) => a - b);
+  // 90th percentile (rounds down for small arrays)
+  const idx = Math.min(
+    Math.floor(estimates.length * 0.9),
+    estimates.length - 1
+  );
+  return estimates[idx];
+}

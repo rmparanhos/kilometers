@@ -26,6 +26,7 @@ interface FormChartProps {
   currentCTL: number;
   currentATL: number;
   currentTSB: number;
+  vo2max: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -131,10 +132,12 @@ function StatCard({
   label,
   value,
   color,
+  unit,
 }: {
   label: string;
   value: number;
   color: string;
+  unit?: string;
 }) {
   return (
     <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
@@ -144,6 +147,9 @@ function StatCard({
       <p className="mt-1 text-2xl font-semibold" style={{ color }}>
         {value.toFixed(1)}
       </p>
+      {unit && (
+        <p className="text-xs text-gray-400 mt-0.5">{unit}</p>
+      )}
     </div>
   );
 }
@@ -158,6 +164,7 @@ export function FormChart({
   currentCTL,
   currentATL,
   currentTSB,
+  vo2max,
 }: FormChartProps) {
   const zoneInfo = ZONE_LABELS[currentZone];
   const zoneColor = ZONE_COLORS[currentZone];
@@ -173,18 +180,17 @@ export function FormChart({
 
   return (
     <div className="space-y-6">
-      {/* Contextual insight */}
+      {/* Zone status card */}
       <div
         className="rounded-xl border px-5 py-4"
         style={{ borderColor: zoneColor + "40", backgroundColor: zoneColor + "10" }}
       >
-        <div className="flex items-start gap-3">
-          <span
-            className="mt-0.5 h-3 w-3 flex-shrink-0 rounded-full"
-            style={{ backgroundColor: zoneColor }}
-          />
+        <div className="flex items-center gap-4">
+          <span className="text-4xl leading-none select-none" role="img" aria-label={zoneInfo.label}>
+            {zoneInfo.emoji}
+          </span>
           <div>
-            <p className="font-semibold text-gray-900" style={{ color: zoneColor }}>
+            <p className="font-semibold text-lg leading-tight" style={{ color: zoneColor }}>
               {zoneInfo.label}
             </p>
             <p className="mt-0.5 text-sm text-gray-600">{zoneInfo.advice}</p>
@@ -193,10 +199,13 @@ export function FormChart({
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className={`grid gap-4 ${vo2max != null ? "grid-cols-4" : "grid-cols-3"}`}>
         <StatCard label="Fitness (CTL)" value={currentCTL} color="#3b82f6" />
         <StatCard label="Fatigue (ATL)" value={currentATL} color="#f97316" />
         <StatCard label="Form (TSB)" value={currentTSB} color={zoneColor} />
+        {vo2max != null && (
+          <StatCard label="VO₂max est." value={vo2max} color="#8b5cf6" unit="mL/kg/min" />
+        )}
       </div>
 
       {/* Chart */}
@@ -299,7 +308,7 @@ export function FormChart({
 
       {/* Scientific references */}
       <p className="text-xs text-gray-400 leading-relaxed">
-        Model based on the Banister impulse–response framework.{" "}
+        PMC: Banister impulse–response framework —{" "}
         <a
           href="https://doi.org/10.1152/jappl.1990.69.3.1171"
           target="_blank"
@@ -317,6 +326,20 @@ export function FormChart({
         >
           Bourdon et al. (2017)
         </a>
+        {vo2max != null && (
+          <>
+            {" · "}
+            VO₂max: ACSM running O₂ cost · %HRR ≈ %VO₂max —{" "}
+            <a
+              href="https://doi.org/10.1249/00005768-199401000-00019"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-gray-600"
+            >
+              Swain et al. (1994)
+            </a>
+          </>
+        )}
       </p>
     </div>
   );

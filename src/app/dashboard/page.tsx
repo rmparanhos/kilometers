@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { activities } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { fillGaps, computeFormSeries, getFormZone } from "@/lib/training/metrics";
+import { fillGaps, computeFormSeries, getFormZone, bestVO2maxEstimate } from "@/lib/training/metrics";
 import { FormChart } from "@/components/charts/FormChart";
 import { Header } from "@/components/layout/Header";
 import { GarminSyncButton } from "@/components/layout/GarminSyncButton";
@@ -30,6 +30,8 @@ export default async function DashboardPage() {
       trainingLoad: activities.trainingLoad,
       distanceM: activities.distanceM,
       durationSec: activities.durationSec,
+      avgPaceMperS: activities.avgPaceMperS,
+      avgHeartRateBpm: activities.avgHeartRateBpm,
     })
     .from(activities)
     .where(eq(activities.userId, user.id))
@@ -48,6 +50,12 @@ export default async function DashboardPage() {
 
   const hasData = series.length > 0;
   const hasGarmin = !!(user.garminEmail && user.garminPassword);
+
+  const vo2max = bestVO2maxEstimate(userActivities, {
+    hrMax: user.hrMax,
+    hrRest: user.hrRest,
+    lthrBpm: user.lthrBpm,
+  });
 
   return (
     <>
@@ -75,6 +83,7 @@ export default async function DashboardPage() {
               currentCTL={currentCTL}
               currentATL={currentATL}
               currentTSB={currentTSB}
+              vo2max={vo2max}
             />
           ) : (
             <EmptyState />
