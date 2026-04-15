@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
 import { db } from "@/lib/db";
 import { activities, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { parseFitBuffer, extractActivityFromFit } from "@/lib/parsers/fit";
 import { parseGpxString, extractActivityFromGpx } from "@/lib/parsers/gpx";
 import { normalizeToActivityInsert } from "@/lib/parsers/normalize";
-import { estimateTrainingLoad } from "@/lib/training/metrics";
+import { estimateTrainingLoadWithModel } from "@/lib/training/metrics";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "No user found" }, { status: 500 });
 
-  const userId = (session.user as { id: string }).id;
+  const userId = user.id;
   const userProfile = db.select({ hrMax: users.hrMax, hrRest: users.hrRest, lthrBpm: users.lthrBpm })
     .from(users).where(eq(users.id, userId)).get() ?? {};
 
@@ -58,7 +55,7 @@ export async function POST(req: NextRequest) {
       parsed = extractActivityFromGpx(gpxData);
     }
 
-    const trainingLoad = estimateTrainingLoad(
+    const { load: trainingLoad, model: loadModel } = estimateTrainingLoadWithModel(
       parsed.durationSec,
       parsed.avgHeartRateBpm,
       userProfile
@@ -68,6 +65,7 @@ export async function POST(req: NextRequest) {
       sourceFile: file.name,
       sourceFormat: format,
       trainingLoad,
+      loadModel,
     });
 
     const [created] = db.insert(activities).values(insertData).returning().all();

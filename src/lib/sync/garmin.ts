@@ -17,7 +17,7 @@ import { activities, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { parseFitBuffer, extractActivityFromFit } from "@/lib/parsers/fit";
 import { normalizeToActivityInsert } from "@/lib/parsers/normalize";
-import { estimateTrainingLoad } from "@/lib/training/metrics";
+import { estimateTrainingLoadWithModel } from "@/lib/training/metrics";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,22 +42,8 @@ export interface SyncResult {
 
 const TOKEN_PATH = path.join(process.cwd(), "db", "garmin-token.json");
 
-async function createAuthenticatedClient(): Promise<GarminConnect> {
-  const email = process.env.GARMIN_EMAIL;
-  const password = process.env.GARMIN_PASSWORD;
-
-  if (!email || !password) {
-    throw new Error(
-      "GARMIN_EMAIL and GARMIN_PASSWORD must be set in .env.local"
-    );
-  }
-
-  const gc = new GarminConnect({
-    username: email,
-    password: password
-});
-
-  
+async function createAuthenticatedClient(email: string, password: string): Promise<GarminConnect> {
+  const gc = new GarminConnect({ username: email, password });
 
   // Try to reuse a cached token to avoid re-authenticating every time
   if (fs.existsSync(TOKEN_PATH)) {
@@ -127,9 +113,19 @@ export async function syncGarminActivities(
 ): Promise<SyncResult> {
   const { limit = 200, activityTypeKey = "" } = opts;
 
-  const gc = await createAuthenticatedClient();
-  const userProfile = db.select({ hrMax: users.hrMax, hrRest: users.hrRest, lthrBpm: users.lthrBpm })
-    .from(users).where(eq(users.id, userId)).get() ?? {};
+  const userProfile = db.select({
+    hrMax: users.hrMax,
+    hrRest: users.hrRest,
+    lthrBpm: users.lthrBpm,
+    garminEmail: users.garminEmail,
+    garminPassword: users.garminPassword,
+  }).from(users).where(eq(users.id, userId)).get() ?? { hrMax: null, hrRest: null, lthrBpm: null, garminEmail: null, garminPassword: null };
+
+  if (!userProfile.garminEmail || !userProfile.garminPassword) {
+    throw new Error("Garmin credentials not configured. Add them on the Profile page.");
+  }
+
+  const gc = await createAuthenticatedClient(userProfile.garminEmail, userProfile.garminPassword);
 
   const allActivities = await gc.getActivities(0, limit);
 
@@ -164,7 +160,7 @@ export async function syncGarminActivities(
       const fitData = await parseFitBuffer(fitBuffer);
       const parsed = extractActivityFromFit(fitData);
 
-      const trainingLoad = estimateTrainingLoad(
+      const { load: trainingLoad, model: loadModel } = estimateTrainingLoadWithModel(
         parsed.durationSec,
         parsed.avgHeartRateBpm,
         userProfile
@@ -175,6 +171,7 @@ export async function syncGarminActivities(
         sourceFormat: "fit",
         externalId,
         trainingLoad,
+        loadModel,
       });
 
       // Use activity name from Garmin Connect if the FIT file didn't provide one

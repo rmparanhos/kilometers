@@ -229,26 +229,44 @@ export interface HrProfile {
   lthrBpm?: number | null;
 }
 
+/** Which calculation model was used for a given activity's training load. */
+export type LoadModel = "banister" | "hr_tss" | "duration";
+
 /**
- * Smart training load selector.
+ * Smart training load selector — returns load and the model used.
  *
  * Priority:
  *   1. Banister TRIMP (1991)  — when avgHR + hrMax + hrRest are all known
- *   2. Linear hrTSS (Manzi)   — when avgHR + lthrBpm are known
+ *   2. Linear hrTSS (Manzi)   — when avgHR is known (uses lthrBpm or 170 default)
  *   3. Duration fallback       — when no HR data is available
  */
+export function estimateTrainingLoadWithModel(
+  durationSec: number,
+  avgHrBpm: number | null | undefined,
+  profile: HrProfile = {}
+): { load: number; model: LoadModel } {
+  if (avgHrBpm != null && profile.hrMax && profile.hrRest) {
+    return {
+      load: estimateBanisterTRIMP(durationSec, avgHrBpm, profile.hrMax, profile.hrRest),
+      model: "banister",
+    };
+  }
+  if (avgHrBpm != null) {
+    return {
+      load: estimateHrTSS(durationSec, avgHrBpm, profile.lthrBpm ?? 170),
+      model: "hr_tss",
+    };
+  }
+  return { load: estimateLoadFromDuration(durationSec), model: "duration" };
+}
+
+/** Convenience wrapper — returns only the numeric load. */
 export function estimateTrainingLoad(
   durationSec: number,
   avgHrBpm: number | null | undefined,
   profile: HrProfile = {}
 ): number {
-  if (avgHrBpm != null && profile.hrMax && profile.hrRest) {
-    return estimateBanisterTRIMP(durationSec, avgHrBpm, profile.hrMax, profile.hrRest);
-  }
-  if (avgHrBpm != null) {
-    return estimateHrTSS(durationSec, avgHrBpm, profile.lthrBpm ?? 170);
-  }
-  return estimateLoadFromDuration(durationSec);
+  return estimateTrainingLoadWithModel(durationSec, avgHrBpm, profile).load;
 }
 
 // ---------------------------------------------------------------------------

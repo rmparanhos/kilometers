@@ -7,26 +7,41 @@ interface Props {
   initialHrMax: number | null;
   initialHrRest: number | null;
   initialLthrBpm: number | null;
+  initialGarminEmail: string;
+  initialGarminPassword: string;
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-export function ProfileForm({ initialName, initialHrMax, initialHrRest, initialLthrBpm }: Props) {
+export function ProfileForm({
+  initialName,
+  initialHrMax,
+  initialHrRest,
+  initialLthrBpm,
+  initialGarminEmail,
+  initialGarminPassword,
+}: Props) {
   const [name, setName] = useState(initialName);
   const [hrMax, setHrMax] = useState(initialHrMax?.toString() ?? "");
   const [hrRest, setHrRest] = useState(initialHrRest?.toString() ?? "");
   const [lthrBpm, setLthrBpm] = useState(initialLthrBpm?.toString() ?? "");
+  const [garminEmail, setGarminEmail] = useState(initialGarminEmail);
+  const [garminPassword, setGarminPassword] = useState(initialGarminPassword);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [recalcCount, setRecalcCount] = useState<number | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaveState("saving");
+    setRecalcCount(null);
 
     const body = {
       name: name || null,
       hrMax: hrMax ? Number(hrMax) : null,
       hrRest: hrRest ? Number(hrRest) : null,
       lthrBpm: lthrBpm ? Number(lthrBpm) : null,
+      garminEmail: garminEmail || null,
+      garminPassword: garminPassword || null,
     };
 
     try {
@@ -35,7 +50,15 @@ export function ProfileForm({ initialName, initialHrMax, initialHrRest, initialL
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      setSaveState(res.ok ? "saved" : "error");
+      if (res.ok) {
+        const data = await res.json();
+        setSaveState("saved");
+        if (typeof data.recalculated === "number") {
+          setRecalcCount(data.recalculated);
+        }
+      } else {
+        setSaveState("error");
+      }
     } catch {
       setSaveState("error");
     }
@@ -45,7 +68,9 @@ export function ProfileForm({ initialName, initialHrMax, initialHrRest, initialL
   const model =
     hrMax && hrRest
       ? "Banister TRIMP (1991) — exponential HR reserve"
-      : lthrBpm || (!hrMax && !hrRest)
+      : hrMax || hrRest
+      ? "Linear hrTSS (Manzi et al., 2009) — LTHR ratio (incomplete Banister profile)"
+      : lthrBpm
       ? "Linear hrTSS (Manzi et al., 2009) — LTHR ratio"
       : "Duration fallback (60 TSS/hour)";
 
@@ -71,7 +96,7 @@ export function ProfileForm({ initialName, initialHrMax, initialHrRest, initialL
         <p className="text-xs text-gray-500 mb-4">
           Setting HR Max + HR Rest enables the Banister TRIMP model with exponential
           intensity weighting. Without them, the app falls back to the linear hrTSS model
-          using LTHR.
+          using LTHR. Saving will recalculate all existing activities.
         </p>
 
         <div className="grid grid-cols-3 gap-4">
@@ -110,6 +135,42 @@ export function ProfileForm({ initialName, initialHrMax, initialHrRest, initialL
         </p>
       </div>
 
+      <hr className="border-gray-100" />
+
+      {/* Garmin credentials */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-900 mb-1">Garmin Connect</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Credentials are stored locally in the database and used only to sync activities
+          from Garmin Connect.
+        </p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+            <input
+              type="email"
+              value={garminEmail}
+              onChange={(e) => setGarminEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="off"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+            <input
+              type="password"
+              value={garminPassword}
+              onChange={(e) => setGarminPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Save */}
       <div className="flex items-center gap-3">
         <button
@@ -120,7 +181,12 @@ export function ProfileForm({ initialName, initialHrMax, initialHrRest, initialL
           {saveState === "saving" ? "Saving…" : "Save"}
         </button>
         {saveState === "saved" && (
-          <p className="text-xs text-green-600">Saved — new activities will use the updated model.</p>
+          <p className="text-xs text-green-600">
+            Saved.
+            {recalcCount != null && recalcCount > 0
+              ? ` Recalculated ${recalcCount} activit${recalcCount !== 1 ? "ies" : "y"}.`
+              : ""}
+          </p>
         )}
         {saveState === "error" && (
           <p className="text-xs text-red-500">Failed to save. Try again.</p>

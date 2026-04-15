@@ -228,6 +228,10 @@ export function FormChart({
               tickLine={false}
               axisLine={false}
               width={36}
+              domain={[
+                (dataMin: number) => Math.min(dataMin - 5, -35),
+                (dataMax: number) => Math.max(dataMax + 5, 30),
+              ]}
             />
             <Tooltip content={<FormTooltip />} />
             <Legend

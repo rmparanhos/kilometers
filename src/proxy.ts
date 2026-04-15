@@ -1,11 +1,11 @@
-import { withAuth } from "next-auth/middleware";
+// No-op proxy — authentication removed (self-hosted, single-user).
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-// next-auth's withAuth returns a NextMiddleware compatible handler.
-// In Next.js 16, the file must be named `proxy.ts` and the export `proxy`.
-export const proxy = withAuth({
-  pages: { signIn: "/login" },
-});
+export function proxy(_req: NextRequest) {
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/activities/:path*", "/equipment/:path*"],
+  matcher: [],
 };

@@ -1,6 +1,3 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { activities } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
@@ -8,13 +5,23 @@ import { fillGaps, computeFormSeries, getFormZone } from "@/lib/training/metrics
 import { FormChart } from "@/components/charts/FormChart";
 import { Header } from "@/components/layout/Header";
 import { GarminSyncButton } from "@/components/layout/GarminSyncButton";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import type { FormPoint } from "@/lib/training/metrics";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
-
-  const userId = (session.user as { id: string }).id;
+  const user = await getCurrentUser();
+  if (!user) {
+    return (
+      <>
+        <Header />
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <p className="text-gray-500 text-sm">
+            No user found. Run <code className="font-mono">npm run db:seed</code> to create one.
+          </p>
+        </main>
+      </>
+    );
+  }
 
   // Fetch all activities for this user ordered by date
   const userActivities = db
@@ -25,7 +32,7 @@ export default async function DashboardPage() {
       durationSec: activities.durationSec,
     })
     .from(activities)
-    .where(eq(activities.userId, userId))
+    .where(eq(activities.userId, user.id))
     .orderBy(asc(activities.startedAt))
     .all();
 
@@ -40,6 +47,7 @@ export default async function DashboardPage() {
   const currentZone = getFormZone(currentTSB);
 
   const hasData = series.length > 0;
+  const hasGarmin = !!(user.garminEmail && user.garminPassword);
 
   return (
     <>
@@ -57,7 +65,7 @@ export default async function DashboardPage() {
                   : "No activities yet"}
               </p>
             </div>
-            {process.env.GARMIN_EMAIL && <GarminSyncButton />}
+            {hasGarmin && <GarminSyncButton />}
           </div>
 
           {hasData ? (

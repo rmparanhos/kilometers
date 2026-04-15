@@ -14,6 +14,9 @@ export const users = sqliteTable("users", {
   hrMax: integer("hr_max"),   // bpm; enables Banister TRIMP (1991)
   hrRest: integer("hr_rest"), // bpm; resting HR for Karvonen HRr
   lthrBpm: integer("lthr_bpm"), // bpm; lactate threshold HR for linear hrTSS
+  // Garmin Connect credentials (stored locally for self-hosted use)
+  garminEmail: text("garmin_email"),
+  garminPassword: text("garmin_password"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -114,6 +117,7 @@ export const activities = sqliteTable(
     avgCadenceRpm: real("avg_cadence_rpm"),
     avgPaceMperS: real("avg_pace_m_per_s"), // m/s — convert to min/km in UI
     trainingLoad: real("training_load"),    // hrTSS or TRIMP, used for CTL/ATL
+    loadModel: text("load_model"),          // "banister" | "hr_tss" | "duration"
     perceivedEffort: integer("perceived_effort"), // 1–10, user-entered
 
     // Raw data blob (optional — heart rate/GPS records array)

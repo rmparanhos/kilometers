@@ -15,6 +15,13 @@
       "when": 1776134438523,
       "tag": "0001_sour_robbie_robertson",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1776215416550,
+      "tag": "0002_fuzzy_amazoness",
+      "breakpoints": true
     }
   ]
 }

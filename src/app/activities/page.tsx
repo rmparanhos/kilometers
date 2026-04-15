@@ -1,18 +1,29 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { activities } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Header } from "@/components/layout/Header";
 import { ClearActivitiesButton } from "@/components/layout/ClearActivitiesButton";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
 
-export default async function ActivitiesPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+function ModelBadge({ model }: { model: string | null }) {
+  if (!model) return <span className="text-gray-300">—</span>;
+  const labels: Record<string, { text: string; className: string }> = {
+    banister: { text: "TRIMP", className: "bg-blue-50 text-blue-700" },
+    hr_tss:   { text: "hrTSS", className: "bg-amber-50 text-amber-700" },
+    duration: { text: "dur.",  className: "bg-gray-100 text-gray-500" },
+  };
+  const cfg = labels[model] ?? { text: model, className: "bg-gray-100 text-gray-500" };
+  return (
+    <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${cfg.className}`}>
+      {cfg.text}
+    </span>
+  );
+}
 
-  const userId = (session.user as { id: string }).id;
+export default async function ActivitiesPage() {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? "";
 
   const userActivities = db
     .select()
@@ -28,7 +39,7 @@ export default async function ActivitiesPage() {
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-              Atividades
+              Activities
             </h1>
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-400">
@@ -57,6 +68,7 @@ export default async function ActivitiesPage() {
                     <th className="px-4 py-3 font-medium text-gray-500">Pace</th>
                     <th className="px-4 py-3 font-medium text-gray-500">Avg HR</th>
                     <th className="px-4 py-3 font-medium text-gray-500">TSS</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Model</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -66,14 +78,14 @@ export default async function ActivitiesPage() {
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-4 py-3 text-gray-500 tabular-nums">
-                        {act.startedAt.toLocaleDateString("pt-BR")}
+                        {act.startedAt.toLocaleDateString("en-GB")}
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-900">
                         <a
                           href={`/activities/${act.id}`}
                           className="hover:underline"
                         >
-                          {act.name ?? act.sport ?? "Atividade"}
+                          {act.name ?? act.sport ?? "Activity"}
                         </a>
                       </td>
                       <td className="px-4 py-3 text-gray-600 tabular-nums">
@@ -94,6 +106,9 @@ export default async function ActivitiesPage() {
                         {act.trainingLoad != null
                           ? act.trainingLoad.toFixed(1)
                           : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <ModelBadge model={act.loadModel} />
                       </td>
                     </tr>
                   ))}

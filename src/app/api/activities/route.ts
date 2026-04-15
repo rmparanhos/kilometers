@@ -1,21 +1,16 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
 import { db } from "@/lib/db";
 import { activities, activityLaps } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
 export async function DELETE() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "No user found" }, { status: 500 });
 
-  const userId = (session.user as { id: string }).id;
+  const userId = user.id;
 
   // Fetch activity IDs first, then delete laps explicitly before activities.
-  // This avoids relying on SQLite cascade (which requires foreign_keys = ON
-  // to be active on the connection AND the constraint to exist in the schema).
   const userActivityIds = db
     .select({ id: activities.id })
     .from(activities)

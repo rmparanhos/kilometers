@@ -29,6 +29,7 @@ export function normalizeToActivityInsert(
     sourceFormat?: string;
     externalId?: string;
     trainingLoad?: number;
+    loadModel?: string;
   } = {}
 ): Omit<ActivityInsert, "id" | "createdAt"> {
   return {
@@ -51,6 +52,7 @@ export function normalizeToActivityInsert(
     avgCadenceRpm: parsed.avgCadenceRpm ?? null,
     avgPaceMperS: parsed.avgPaceMperS ?? null,
     trainingLoad: opts.trainingLoad ?? null,
+    loadModel: opts.loadModel ?? null,
     perceivedEffort: null,
     equipmentId: null,
     rawDataJson: parsed.records ? JSON.stringify(parsed.records) : null,
