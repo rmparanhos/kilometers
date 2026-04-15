@@ -281,29 +281,24 @@ export function getFormZone(tsb: number): FormZone {
   return "overreached";
 }
 
-export const ZONE_LABELS: Record<FormZone, { label: string; advice: string; emoji: string }> = {
+export const ZONE_LABELS: Record<FormZone, { label: string; advice: string }> = {
   peak: {
-    emoji: "🏆",
     label: "Peak form",
     advice: "Optimal window for racing or maximum-quality sessions (TSB > 10).",
   },
   fresh: {
-    emoji: "💪",
     label: "Fresh",
     advice: "Ready for quality work — maintain controlled load (0 < TSB ≤ 10).",
   },
   neutral: {
-    emoji: "⚖️",
     label: "Neutral",
     advice: "Fitness and fatigue in balance — load is sustainable (−10 < TSB ≤ 0).",
   },
   fatigued: {
-    emoji: "🔥",
     label: "Optimal load",
     advice: "Prime adaptation window — fitness is being built; monitor recovery closely (−30 < TSB ≤ −10).",
   },
   overreached: {
-    emoji: "⚠️",
     label: "High risk",
     advice: "Reduce load immediately — overtraining and injury risk are elevated (TSB ≤ −30).",
   },

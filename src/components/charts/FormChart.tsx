@@ -186,9 +186,6 @@ export function FormChart({
         style={{ borderColor: zoneColor + "40", backgroundColor: zoneColor + "10" }}
       >
         <div className="flex items-center gap-4">
-          <span className="text-4xl leading-none select-none" role="img" aria-label={zoneInfo.label}>
-            {zoneInfo.emoji}
-          </span>
           <div>
             <p className="font-semibold text-lg leading-tight" style={{ color: zoneColor }}>
               {zoneInfo.label}
@@ -265,7 +262,7 @@ export function FormChart({
             />
             {/* High risk zone: TSB ≤ -30 */}
             <ReferenceArea
-              y1={-200}
+              y1={-80}
               y2={-30}
               fill="#ef4444"
               fillOpacity={0.07}
