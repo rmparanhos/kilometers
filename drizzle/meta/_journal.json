@@ -22,6 +22,13 @@
       "when": 1776215416550,
       "tag": "0002_fuzzy_amazoness",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1776361531207,
+      "tag": "0003_sturdy_redwing",
+      "breakpoints": true
     }
   ]
 }

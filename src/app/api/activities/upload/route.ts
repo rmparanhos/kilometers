@@ -7,6 +7,7 @@ import { parseGpxString, extractActivityFromGpx } from "@/lib/parsers/gpx";
 import { normalizeToActivityInsert } from "@/lib/parsers/normalize";
 import { estimateTrainingLoadWithModel } from "@/lib/training/metrics";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { fetchWeather } from "@/lib/weather";
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -69,6 +70,21 @@ export async function POST(req: NextRequest) {
     });
 
     const [created] = db.insert(activities).values(insertData).returning().all();
+
+    // Best-effort weather enrichment — never fails the upload
+    if (created.startLat != null && created.startLon != null) {
+      try {
+        const weather = await fetchWeather(created.startLat, created.startLon, created.startedAt);
+        if (weather) {
+          db.update(activities)
+            .set({ weatherJson: JSON.stringify(weather) })
+            .where(eq(activities.id, created.id))
+            .run();
+        }
+      } catch {
+        // silently ignore weather fetch errors
+      }
+    }
 
     return NextResponse.json({ activity: created }, { status: 201 });
   } catch (err) {

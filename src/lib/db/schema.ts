@@ -123,6 +123,9 @@ export const activities = sqliteTable(
     // Raw data blob (optional — heart rate/GPS records array)
     rawDataJson: text("raw_data_json"),
 
+    // Weather snapshot at activity start (fetched from Open-Meteo at upload time)
+    weatherJson: text("weather_json"),
+
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
