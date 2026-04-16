@@ -26,17 +26,17 @@ export interface HeatmapCalendarProps {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Colour scale
 // ---------------------------------------------------------------------------
 
-const LEVELS = [0, 30, 60, 100] as const;
 const COLORS = [
-  "#f3f4f6", // 0 — rest day
-  "#bfdbfe", // 1 — easy  (≤ 30)
-  "#60a5fa", // 2 — moderate (≤ 60)
-  "#2563eb", // 3 — hard (≤ 100)
+  "#e5e7eb", // 0 — rest day  (gray-200, visible on white)
+  "#bfdbfe", // 1 — easy      (≤ 30)
+  "#60a5fa", // 2 — moderate  (≤ 60)
+  "#2563eb", // 3 — hard      (≤ 100)
   "#1e3a8a", // 4 — very hard (> 100)
 ];
+
 const LEVEL_LABELS = ["Rest", "Easy", "Moderate", "Hard", "Very hard"];
 
 function loadLevel(load: number): number {
@@ -47,9 +47,7 @@ function loadLevel(load: number): number {
   return 4;
 }
 
-const CELL = 12;
-const GAP = 3;
-const STEP = CELL + GAP;
+// Show M / W / F labels on odd rows
 const DAY_LABELS = ["", "M", "", "W", "", "F", ""];
 
 // ---------------------------------------------------------------------------
@@ -76,22 +74,21 @@ export function HeatmapCalendar({ activities }: HeatmapCalendarProps) {
     });
   }
 
-  // Build 52-week grid starting from the Sunday of the week 51 weeks ago
+  // 52-week grid — each column = 1 week (7 rows = Sun–Sat)
   const today = new Date();
   const gridStart = startOfWeek(subWeeks(today, 51), { weekStartsOn: 0 });
   const allDays = eachDayOfInterval({ start: gridStart, end: today });
 
-  // Split into columns of 7 (one column = one week)
+  // Split into columns of 7
   const weeks: (Date | null)[][] = [];
   for (let i = 0; i < allDays.length; i += 7) {
-    const week = allDays.slice(i, i + 7);
-    // Pad the last partial week to 7 slots
-    while (week.length < 7) week.push(null as unknown as Date);
-    weeks.push(week);
+    const slice = allDays.slice(i, i + 7) as (Date | null)[];
+    while (slice.length < 7) slice.push(null);
+    weeks.push(slice);
   }
 
-  // Month label for the first week that starts a new month
-  const monthLabels: Map<number, string> = new Map();
+  // First week that starts each new month → month label
+  const monthLabels = new Map<number, string>();
   let lastMonth = -1;
   weeks.forEach((week, wi) => {
     const first = week.find(Boolean);
@@ -103,91 +100,94 @@ export function HeatmapCalendar({ activities }: HeatmapCalendarProps) {
     }
   });
 
+  const GAP = 3; // px between cells
+
   return (
     <>
       <Card>
         <CardContent>
           <div className="mb-4">
             <h2 className="text-base font-semibold text-foreground">Training Load</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Daily training load — last 52 weeks</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Daily training load — last 52 weeks
+            </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <div className="inline-block">
-              {/* Month labels */}
-              <div className="flex mb-1" style={{ paddingLeft: 20 }}>
-                {weeks.map((_, wi) => (
-                  <div
-                    key={wi}
-                    className="text-xs text-muted-foreground flex-shrink-0"
-                    style={{ width: STEP }}
-                  >
-                    {monthLabels.get(wi) ?? ""}
-                  </div>
-                ))}
+          {/* Month labels row */}
+          <div className="flex items-end mb-1" style={{ gap: GAP }}>
+            {/* spacer matching day-label column */}
+            <div className="w-5 shrink-0" />
+            {weeks.map((week, wi) => (
+              <div
+                key={wi}
+                className="flex-1 min-w-0 text-xs text-muted-foreground truncate"
+              >
+                {monthLabels.get(wi) ?? ""}
               </div>
+            ))}
+          </div>
 
-              <div className="flex">
-                {/* Day-of-week labels */}
-                <div className="flex flex-col flex-shrink-0 mr-1" style={{ gap: GAP }}>
-                  {DAY_LABELS.map((lbl, i) => (
-                    <div
-                      key={i}
-                      className="text-xs text-muted-foreground/50 flex items-center justify-end pr-1"
-                      style={{ height: CELL, width: 16 }}
-                    >
-                      {lbl}
-                    </div>
-                  ))}
+          {/* Day-label column + week columns */}
+          <div className="flex" style={{ gap: GAP }}>
+            {/* Day labels — 7 rows matching cell rows */}
+            <div className="w-5 shrink-0 flex flex-col" style={{ gap: GAP }}>
+              {DAY_LABELS.map((lbl, i) => (
+                <div
+                  key={i}
+                  className="flex-1 text-xs text-muted-foreground flex items-center justify-end pr-0.5"
+                >
+                  {lbl}
                 </div>
-
-                {/* Week columns */}
-                {weeks.map((week, wi) => (
-                  <div
-                    key={wi}
-                    className="flex flex-col flex-shrink-0"
-                    style={{ gap: GAP, marginRight: GAP }}
-                  >
-                    {week.map((day, di) => {
-                      if (!day) {
-                        return <div key={di} style={{ width: CELL, height: CELL }} />;
-                      }
-                      const dateKey = format(day, "yyyy-MM-dd");
-                      const data = byDay.get(dateKey) ?? {
-                        date: dateKey, load: 0, distanceM: 0, durationSec: 0,
-                      };
-                      const level = loadLevel(data.load);
-                      return (
-                        <div
-                          key={di}
-                          style={{ width: CELL, height: CELL, backgroundColor: COLORS[level], borderRadius: 2 }}
-                          onMouseEnter={(e) => setTooltip({ day: data, x: e.clientX, y: e.clientY })}
-                          onMouseLeave={() => setTooltip(null)}
-                        />
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-
-              {/* Legend */}
-              <div className="flex items-center gap-1.5 mt-3 justify-end">
-                <span className="text-xs text-muted-foreground">Less</span>
-                {COLORS.map((color, i) => (
-                  <div
-                    key={i}
-                    style={{ width: CELL, height: CELL, backgroundColor: color, borderRadius: 2 }}
-                    title={LEVEL_LABELS[i]}
-                  />
-                ))}
-                <span className="text-xs text-muted-foreground">More</span>
-              </div>
+              ))}
             </div>
+
+            {/* 52 week columns — flex-1 fills the container */}
+            {weeks.map((week, wi) => (
+              <div
+                key={wi}
+                className="flex-1 flex flex-col"
+                style={{ gap: GAP }}
+              >
+                {week.map((day, di) => {
+                  const dateKey = day ? format(day, "yyyy-MM-dd") : null;
+                  const data = dateKey
+                    ? (byDay.get(dateKey) ?? { date: dateKey, load: 0, distanceM: 0, durationSec: 0 })
+                    : null;
+                  const level = loadLevel(data?.load ?? 0);
+
+                  return (
+                    <div
+                      key={di}
+                      className="w-full aspect-square rounded-[2px]"
+                      style={{ backgroundColor: day ? COLORS[level] : "transparent" }}
+                      onMouseEnter={(e) => {
+                        if (data && day) setTooltip({ day: data, x: e.clientX, y: e.clientY });
+                      }}
+                      onMouseLeave={() => setTooltip(null)}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-1.5 mt-3 justify-end">
+            <span className="text-xs text-muted-foreground">Less</span>
+            {COLORS.map((color, i) => (
+              <div
+                key={i}
+                className="size-3 rounded-[2px]"
+                style={{ backgroundColor: color }}
+                title={LEVEL_LABELS[i]}
+              />
+            ))}
+            <span className="text-xs text-muted-foreground">More</span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Floating tooltip — outside Card to avoid overflow:hidden clipping */}
+      {/* Tooltip — outside Card to avoid overflow:hidden clipping */}
       {tooltip && (
         <div
           className="fixed z-50 pointer-events-none rounded-lg border border-border bg-popover text-popover-foreground px-3 py-2 shadow-md text-xs"
@@ -197,16 +197,25 @@ export function HeatmapCalendar({ activities }: HeatmapCalendarProps) {
           {tooltip.day.load > 0 ? (
             <>
               <p className="text-muted-foreground">
-                Load: <span className="font-medium text-foreground">{tooltip.day.load.toFixed(1)}</span>
+                Load:{" "}
+                <span className="font-medium text-foreground">
+                  {tooltip.day.load.toFixed(1)}
+                </span>
               </p>
               {tooltip.day.distanceM > 0 && (
                 <p className="text-muted-foreground">
-                  Distance: <span className="font-medium text-foreground">{formatDistance(tooltip.day.distanceM)}</span>
+                  Distance:{" "}
+                  <span className="font-medium text-foreground">
+                    {formatDistance(tooltip.day.distanceM)}
+                  </span>
                 </p>
               )}
               {tooltip.day.durationSec > 0 && (
                 <p className="text-muted-foreground">
-                  Duration: <span className="font-medium text-foreground">{formatDuration(tooltip.day.durationSec)}</span>
+                  Duration:{" "}
+                  <span className="font-medium text-foreground">
+                    {formatDuration(tooltip.day.durationSec)}
+                  </span>
                 </p>
               )}
             </>
