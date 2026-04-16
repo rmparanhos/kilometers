@@ -81,6 +81,7 @@ Each activity stores which model was used (`loadModel` column). Changing the HR 
 - [ ] Parser unit tests (validate .fit and .gpx output)
 - [ ] Pace and HR curves by distance (best effort over time per distance bucket)
 - [ ] Cadence trend chart (avg and max cadence over time, with distribution histogram)
+- [ ] Distance distribution histogram (frequency of activities by distance bucket)
 - [ ] VO₂max evolution chart (estimated VO₂max over time from submaximal efforts)
 - [ ] Equipment dashboard (pace / HR / cadence / accumulated km by shoe)
 - [ ] Performance curve by distance over time
