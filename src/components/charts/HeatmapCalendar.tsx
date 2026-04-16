@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { format, startOfWeek, subWeeks, eachDayOfInterval } from "date-fns";
 import { formatDistance, formatDuration } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -103,139 +104,117 @@ export function HeatmapCalendar({ activities }: HeatmapCalendarProps) {
   });
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-      <div className="mb-4">
-        <h2 className="text-base font-semibold text-gray-900">Training Load</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Daily training load — last 52 weeks</p>
-      </div>
-
-      <div className="overflow-x-auto">
-        <div className="inline-block">
-          {/* Month labels */}
-          <div className="flex mb-1" style={{ paddingLeft: 20 }}>
-            {weeks.map((_, wi) => (
-              <div
-                key={wi}
-                className="text-xs text-gray-400 flex-shrink-0"
-                style={{ width: STEP }}
-              >
-                {monthLabels.get(wi) ?? ""}
-              </div>
-            ))}
+    <>
+      <Card>
+        <CardContent>
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-foreground">Training Load</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Daily training load — last 52 weeks</p>
           </div>
 
-          <div className="flex">
-            {/* Day-of-week labels */}
-            <div
-              className="flex flex-col flex-shrink-0 mr-1"
-              style={{ gap: GAP }}
-            >
-              {DAY_LABELS.map((lbl, i) => (
-                <div
-                  key={i}
-                  className="text-xs text-gray-300 flex items-center justify-end pr-1"
-                  style={{ height: CELL, width: 16 }}
-                >
-                  {lbl}
-                </div>
-              ))}
-            </div>
+          <div className="overflow-x-auto">
+            <div className="inline-block">
+              {/* Month labels */}
+              <div className="flex mb-1" style={{ paddingLeft: 20 }}>
+                {weeks.map((_, wi) => (
+                  <div
+                    key={wi}
+                    className="text-xs text-muted-foreground flex-shrink-0"
+                    style={{ width: STEP }}
+                  >
+                    {monthLabels.get(wi) ?? ""}
+                  </div>
+                ))}
+              </div>
 
-            {/* Week columns */}
-            {weeks.map((week, wi) => (
-              <div
-                key={wi}
-                className="flex flex-col flex-shrink-0"
-                style={{ gap: GAP, marginRight: GAP }}
-              >
-                {week.map((day, di) => {
-                  if (!day) {
-                    return (
-                      <div key={di} style={{ width: CELL, height: CELL }} />
-                    );
-                  }
-                  const dateKey = format(day, "yyyy-MM-dd");
-                  const data = byDay.get(dateKey) ?? {
-                    date: dateKey,
-                    load: 0,
-                    distanceM: 0,
-                    durationSec: 0,
-                  };
-                  const level = loadLevel(data.load);
-
-                  return (
+              <div className="flex">
+                {/* Day-of-week labels */}
+                <div className="flex flex-col flex-shrink-0 mr-1" style={{ gap: GAP }}>
+                  {DAY_LABELS.map((lbl, i) => (
                     <div
-                      key={di}
-                      style={{
-                        width: CELL,
-                        height: CELL,
-                        backgroundColor: COLORS[level],
-                        borderRadius: 2,
-                        cursor: level > 0 ? "default" : "default",
-                      }}
-                      onMouseEnter={(e) =>
-                        setTooltip({ day: data, x: e.clientX, y: e.clientY })
+                      key={i}
+                      className="text-xs text-muted-foreground/50 flex items-center justify-end pr-1"
+                      style={{ height: CELL, width: 16 }}
+                    >
+                      {lbl}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Week columns */}
+                {weeks.map((week, wi) => (
+                  <div
+                    key={wi}
+                    className="flex flex-col flex-shrink-0"
+                    style={{ gap: GAP, marginRight: GAP }}
+                  >
+                    {week.map((day, di) => {
+                      if (!day) {
+                        return <div key={di} style={{ width: CELL, height: CELL }} />;
                       }
-                      onMouseLeave={() => setTooltip(null)}
-                    />
-                  );
-                })}
+                      const dateKey = format(day, "yyyy-MM-dd");
+                      const data = byDay.get(dateKey) ?? {
+                        date: dateKey, load: 0, distanceM: 0, durationSec: 0,
+                      };
+                      const level = loadLevel(data.load);
+                      return (
+                        <div
+                          key={di}
+                          style={{ width: CELL, height: CELL, backgroundColor: COLORS[level], borderRadius: 2 }}
+                          onMouseEnter={(e) => setTooltip({ day: data, x: e.clientX, y: e.clientY })}
+                          onMouseLeave={() => setTooltip(null)}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Legend */}
-          <div className="flex items-center gap-1.5 mt-3 justify-end">
-            <span className="text-xs text-gray-400">Less</span>
-            {COLORS.map((color, i) => (
-              <div
-                key={i}
-                style={{ width: CELL, height: CELL, backgroundColor: color, borderRadius: 2 }}
-                title={LEVEL_LABELS[i]}
-              />
-            ))}
-            <span className="text-xs text-gray-400">More</span>
+              {/* Legend */}
+              <div className="flex items-center gap-1.5 mt-3 justify-end">
+                <span className="text-xs text-muted-foreground">Less</span>
+                {COLORS.map((color, i) => (
+                  <div
+                    key={i}
+                    style={{ width: CELL, height: CELL, backgroundColor: color, borderRadius: 2 }}
+                    title={LEVEL_LABELS[i]}
+                  />
+                ))}
+                <span className="text-xs text-muted-foreground">More</span>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Floating tooltip */}
+      {/* Floating tooltip — outside Card to avoid overflow:hidden clipping */}
       {tooltip && (
         <div
-          className="fixed z-50 pointer-events-none rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-xs"
+          className="fixed z-50 pointer-events-none rounded-lg border border-border bg-popover text-popover-foreground px-3 py-2 shadow-md text-xs"
           style={{ left: tooltip.x + 14, top: tooltip.y - 56 }}
         >
-          <p className="font-medium text-gray-700 mb-1">{tooltip.day.date}</p>
+          <p className="font-medium mb-1">{tooltip.day.date}</p>
           {tooltip.day.load > 0 ? (
             <>
-              <p className="text-gray-500">
-                Load:{" "}
-                <span className="font-medium text-gray-800">
-                  {tooltip.day.load.toFixed(1)}
-                </span>
+              <p className="text-muted-foreground">
+                Load: <span className="font-medium text-foreground">{tooltip.day.load.toFixed(1)}</span>
               </p>
               {tooltip.day.distanceM > 0 && (
-                <p className="text-gray-500">
-                  Distance:{" "}
-                  <span className="font-medium text-gray-800">
-                    {formatDistance(tooltip.day.distanceM)}
-                  </span>
+                <p className="text-muted-foreground">
+                  Distance: <span className="font-medium text-foreground">{formatDistance(tooltip.day.distanceM)}</span>
                 </p>
               )}
               {tooltip.day.durationSec > 0 && (
-                <p className="text-gray-500">
-                  Duration:{" "}
-                  <span className="font-medium text-gray-800">
-                    {formatDuration(tooltip.day.durationSec)}
-                  </span>
+                <p className="text-muted-foreground">
+                  Duration: <span className="font-medium text-foreground">{formatDuration(tooltip.day.durationSec)}</span>
                 </p>
               )}
             </>
           ) : (
-            <p className="text-gray-400">Rest day</p>
+            <p className="text-muted-foreground">Rest day</p>
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }

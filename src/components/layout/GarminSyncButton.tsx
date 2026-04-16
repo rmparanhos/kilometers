@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 type SyncError = { activityId: number; message: string };
 
@@ -44,24 +45,25 @@ export function GarminSyncButton() {
 
   return (
     <div className="flex items-center gap-3">
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         onClick={handleSync}
         disabled={state.status === "loading"}
-        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors shadow-sm"
       >
-        <GarminIcon />
+        <GarminIcon data-icon="inline-start" />
         {state.status === "loading" ? "Syncing…" : "Sync Garmin"}
-      </button>
+      </Button>
 
       {state.status === "success" && (
-        <div className="text-xs text-gray-500 space-y-0.5">
+        <div className="text-xs text-muted-foreground flex flex-col gap-0.5">
           <p>
-            {state.imported > 0
-              ? `${state.imported} imported`
-              : "Already up to date"}
+            {state.imported > 0 ? `${state.imported} imported` : "Already up to date"}
             {state.skipped > 0 && ` · ${state.skipped} skipped`}
             {state.errors.length > 0 && (
-              <span className="text-amber-600"> · {state.errors.length} error{state.errors.length !== 1 ? "s" : ""}</span>
+              <span className="text-amber-600">
+                {" "}· {state.errors.length} error{state.errors.length !== 1 ? "s" : ""}
+              </span>
             )}
           </p>
           {state.errors.length > 0 && (
@@ -74,19 +76,15 @@ export function GarminSyncButton() {
       )}
 
       {state.status === "error" && (
-        <p className="text-xs text-red-500">{state.message}</p>
+        <p className="text-xs text-destructive">{state.message}</p>
       )}
     </div>
   );
 }
 
-function GarminIcon() {
+function GarminIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="h-3.5 w-3.5 text-[#007CC3]"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" className="text-[#007CC3]" {...props}>
       <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm-1-5h2v2h-2zm0-8h2v6h-2z" />
     </svg>
   );

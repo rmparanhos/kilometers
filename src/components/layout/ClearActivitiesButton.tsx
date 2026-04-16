@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function ClearActivitiesButton() {
   const router = useRouter();
@@ -25,12 +26,8 @@ export function ClearActivitiesButton() {
   }
 
   return (
-    <button
-      onClick={handleClear}
-      disabled={loading}
-      className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors shadow-sm"
-    >
+    <Button variant="destructive" size="sm" onClick={handleClear} disabled={loading}>
       {loading ? "Clearing…" : "Clear all"}
-    </button>
+    </Button>
   );
 }

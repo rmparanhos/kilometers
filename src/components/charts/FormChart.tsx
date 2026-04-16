@@ -15,6 +15,7 @@ import {
 import type { FormPoint, FormZone } from "@/lib/training/metrics";
 import { ZONE_LABELS } from "@/lib/training/metrics";
 import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -140,17 +141,17 @@ function StatCard({
   unit?: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold" style={{ color }}>
-        {value.toFixed(1)}
-      </p>
-      {unit && (
-        <p className="text-xs text-gray-400 mt-0.5">{unit}</p>
-      )}
-    </div>
+    <Card>
+      <CardContent>
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+        <p className="mt-1 text-2xl font-semibold" style={{ color }}>
+          {value.toFixed(1)}
+        </p>
+        {unit && <p className="text-xs text-muted-foreground mt-0.5">{unit}</p>}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -181,19 +182,14 @@ export function FormChart({
   return (
     <div className="space-y-6">
       {/* Zone status card */}
-      <div
-        className="rounded-xl border px-5 py-4"
-        style={{ borderColor: zoneColor + "40", backgroundColor: zoneColor + "10" }}
-      >
-        <div className="flex items-center gap-4">
-          <div>
-            <p className="font-semibold text-lg leading-tight" style={{ color: zoneColor }}>
-              {zoneInfo.label}
-            </p>
-            <p className="mt-0.5 text-sm text-gray-600">{zoneInfo.advice}</p>
-          </div>
-        </div>
-      </div>
+      <Card style={{ borderColor: zoneColor + "40", backgroundColor: zoneColor + "0d" }}>
+        <CardContent>
+          <p className="font-semibold text-lg leading-tight" style={{ color: zoneColor }}>
+            {zoneInfo.label}
+          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{zoneInfo.advice}</p>
+        </CardContent>
+      </Card>
 
       {/* Stat cards */}
       <div className={`grid gap-4 ${vo2max != null ? "grid-cols-4" : "grid-cols-3"}`}>
@@ -206,15 +202,16 @@ export function FormChart({
       </div>
 
       {/* Chart */}
-      <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-        <div className="mb-4">
-          <h2 className="text-base font-semibold text-gray-900">
-            Performance Manager Chart
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            CTL = fitness · ATL = fatigue · TSB = form · ▲ = activity · green = race window · amber = optimal load · red = high risk
-          </p>
-        </div>
+      <Card>
+        <CardContent>
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-foreground">
+              Performance Manager Chart
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              CTL = fitness · ATL = fatigue · TSB = form · ▲ = activity · green = race window · amber = optimal load · red = high risk
+            </p>
+          </div>
 
         <ResponsiveContainer width="100%" height={320}>
           <LineChart
@@ -300,7 +297,8 @@ export function FormChart({
             />
           </LineChart>
         </ResponsiveContainer>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Scientific references */}
       <p className="text-xs text-gray-400 leading-relaxed mb-4">

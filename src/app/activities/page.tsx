@@ -5,19 +5,20 @@ import { Header } from "@/components/layout/Header";
 import { ClearActivitiesButton } from "@/components/layout/ClearActivitiesButton";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 function ModelBadge({ model }: { model: string | null }) {
-  if (!model) return <span className="text-gray-300">—</span>;
-  const labels: Record<string, { text: string; className: string }> = {
-    banister: { text: "TRIMP", className: "bg-blue-50 text-blue-700" },
-    hr_tss:   { text: "hrTSS", className: "bg-amber-50 text-amber-700" },
-    duration: { text: "dur.",  className: "bg-gray-100 text-gray-500" },
+  if (!model) return <span className="text-muted-foreground">—</span>;
+  const cfg: Record<string, { text: string; className: string }> = {
+    banister: { text: "TRIMP", className: "bg-blue-100 text-blue-700 border-blue-200" },
+    hr_tss:   { text: "hrTSS", className: "bg-amber-100 text-amber-700 border-amber-200" },
+    duration: { text: "dur.",  className: "" },
   };
-  const cfg = labels[model] ?? { text: model, className: "bg-gray-100 text-gray-500" };
+  const { text, className } = cfg[model] ?? { text: model, className: "" };
   return (
-    <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${cfg.className}`}>
-      {cfg.text}
-    </span>
+    <Badge variant="outline" className={className}>
+      {text}
+    </Badge>
   );
 }
 
