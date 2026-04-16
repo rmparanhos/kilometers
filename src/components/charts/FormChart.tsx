@@ -262,8 +262,7 @@ export function FormChart({
             />
             {/* High risk zone: TSB ≤ -30 */}
             <ReferenceArea
-              y1={-80}
-              y2={-30}
+              y1={-30}
               fill="#ef4444"
               fillOpacity={0.07}
               label={{ value: "high risk", position: "insideBottomRight", fontSize: 10, fill: "#dc2626" }}
@@ -272,7 +271,7 @@ export function FormChart({
             <ReferenceLine y={0} stroke="#e5e7eb" strokeDasharray="4 4" />
 
             <Line
-              type="monotone"
+              type="linear"
               dataKey="ctl"
               name="CTL (Fitness)"
               stroke="#3b82f6"
@@ -281,7 +280,7 @@ export function FormChart({
               activeDot={{ r: 4 }}
             />
             <Line
-              type="monotone"
+              type="linear"
               dataKey="atl"
               name="ATL (Fatigue)"
               stroke="#f97316"
@@ -290,7 +289,7 @@ export function FormChart({
               activeDot={{ r: 4 }}
             />
             <Line
-              type="monotone"
+              type="linear"
               dataKey="tsb"
               name="TSB (Form)"
               stroke="#6366f1"
@@ -304,7 +303,7 @@ export function FormChart({
       </div>
 
       {/* Scientific references */}
-      <p className="text-xs text-gray-400 leading-relaxed">
+      <p className="text-xs text-gray-400 leading-relaxed mb-4">
         PMC: Banister impulse–response framework —{" "}
         <a
           href="https://doi.org/10.1152/jappl.1990.69.3.1171"
