@@ -48,7 +48,7 @@ function loadLevel(load: number): number {
 }
 
 // Show M / W / F labels on odd rows
-const DAY_LABELS = ["", "M", "", "W", "", "F", ""];
+const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
 // ---------------------------------------------------------------------------
 // Component
@@ -120,7 +120,7 @@ export function HeatmapCalendar({ activities }: HeatmapCalendarProps) {
             {weeks.map((week, wi) => (
               <div
                 key={wi}
-                className="flex-1 min-w-0 text-xs text-muted-foreground truncate"
+                className="flex-1 min-w-0 text-xs text-muted-foreground"
               >
                 {monthLabels.get(wi) ?? ""}
               </div>
