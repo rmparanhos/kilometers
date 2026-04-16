@@ -80,8 +80,11 @@ Each activity stores which model was used (`loadModel` column). Changing the HR 
 - [x] Training load heatmap calendar
 - [ ] Parser unit tests (validate .fit and .gpx output)
 - [ ] Pace and HR curves by distance (best effort over time per distance bucket)
+- [ ] Cadence trend chart (avg and max cadence over time, with distribution histogram)
+- [ ] VO₂max evolution chart (estimated VO₂max over time from submaximal efforts)
 - [ ] Equipment dashboard (pace / HR / cadence / accumulated km by shoe)
 - [ ] Performance curve by distance over time
+- [ ] Activity calendar with daily weather (temperature at activity location and time)
 
 ## Self-hosting
 
