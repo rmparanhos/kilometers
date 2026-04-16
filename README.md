@@ -83,7 +83,7 @@ Each activity stores which model was used (`loadModel` column). Changing the HR 
 - [ ] Cadence trend chart (avg and max cadence over time, with distribution histogram)
 - [ ] Distance distribution histogram (frequency of activities by distance bucket)
 - [ ] VO₂max evolution chart (estimated VO₂max over time from submaximal efforts)
-- [ ] Equipment dashboard (pace / HR / cadence / accumulated km by shoe)
+- [ ] Shoe tracking — accumulated km, pace trend, and retirement alert per shoe (data source TBD: manual entry, Garmin gear API, or .fit device field)
 - [ ] Performance curve by distance over time
 - [ ] Activity calendar with daily weather (temperature at activity location and time)
 
