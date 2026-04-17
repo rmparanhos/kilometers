@@ -23,13 +23,15 @@ function weatherEmoji(code: number): string {
   return "⛈";
 }
 
-function StatItem({ label, value }: { label: string; value: string }) {
+function StatItem({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div>
+    <div className={accent ? "pl-3 border-l-2" : ""} style={accent ? { borderColor: accent } : undefined}>
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 text-xl font-semibold text-foreground">{value}</p>
+      <p className="mt-1 text-xl font-semibold" style={{ color: accent ?? undefined }}>
+        {value}
+      </p>
     </div>
   );
 }
@@ -113,11 +115,12 @@ export default async function ActivityDetailPage({ params }: Props) {
           <Card>
             <CardContent>
               <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-                <StatItem label="Distance" value={formatDistance(activity.distanceM)} />
-                <StatItem label="Duration" value={formatDuration(activity.durationSec)} />
-                <StatItem label="Avg Pace" value={formatPace(activity.avgPaceMperS)} />
+                <StatItem label="Distance" value={formatDistance(activity.distanceM)} accent="#16a34a" />
+                <StatItem label="Duration" value={formatDuration(activity.durationSec)} accent="#6366f1" />
+                <StatItem label="Avg Pace" value={formatPace(activity.avgPaceMperS)} accent="#0ea5e9" />
                 <StatItem
                   label="Avg HR"
+                  accent="#ef4444"
                   value={
                     activity.avgHeartRateBpm
                       ? `${Math.round(activity.avgHeartRateBpm)} bpm`

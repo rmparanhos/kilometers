@@ -72,7 +72,7 @@ export default async function ActivitiesPage() {
                   {userActivities.map((act) => (
                     <tr
                       key={act.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="hover:bg-green-50/40 transition-colors"
                     >
                       <td className="px-4 py-3 text-gray-500 tabular-nums">
                         {act.startedAt.toLocaleDateString("en-GB")}
@@ -85,7 +85,7 @@ export default async function ActivitiesPage() {
                           {act.name ?? act.sport ?? "Activity"}
                         </a>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 tabular-nums">
+                      <td className="px-4 py-3 tabular-nums font-semibold text-green-700">
                         {formatDistance(act.distanceM)}
                       </td>
                       <td className="px-4 py-3 text-gray-600 tabular-nums">
