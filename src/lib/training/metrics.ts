@@ -348,6 +348,54 @@ export function estimateVO2maxFromRun(
   return Math.round(vo2max * 10) / 10;
 }
 
+// ---------------------------------------------------------------------------
+// VO2max time series
+// ---------------------------------------------------------------------------
+
+export interface Vo2maxPoint {
+  date: Date;
+  dateLabel: string;
+  vo2max: number;
+}
+
+/**
+ * Returns one VO2max estimate per activity (filtered to valid submaximal
+ * efforts), sorted ascending by date. Used to plot VO2max evolution over time.
+ */
+export function computeVo2maxSeries(
+  acts: {
+    startedAt: Date;
+    avgPaceMperS: number | null;
+    avgHeartRateBpm: number | null;
+    durationSec: number;
+    distanceM: number;
+  }[],
+  profile: HrProfile
+): Vo2maxPoint[] {
+  if (!profile.hrMax || !profile.hrRest) return [];
+
+  const points: Vo2maxPoint[] = [];
+  for (const act of acts) {
+    if (!act.avgPaceMperS || !act.avgHeartRateBpm) continue;
+    if (act.durationSec < 600) continue;
+    const vo2max = estimateVO2maxFromRun(
+      act.avgPaceMperS,
+      act.avgHeartRateBpm,
+      profile.hrMax,
+      profile.hrRest
+    );
+    if (vo2max != null) {
+      points.push({
+        date: act.startedAt,
+        dateLabel: format(act.startedAt, "yyyy-MM-dd"),
+        vo2max,
+      });
+    }
+  }
+
+  return points.sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
 /**
  * Derives a best VO2max estimate from a list of running activities.
  * Takes the 90th-percentile estimate across all valid efforts (highest

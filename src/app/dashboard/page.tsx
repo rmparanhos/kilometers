@@ -1,9 +1,16 @@
 import { db } from "@/lib/db";
 import { activities } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { fillGaps, computeFormSeries, getFormZone, bestVO2maxEstimate } from "@/lib/training/metrics";
+import {
+  fillGaps,
+  computeFormSeries,
+  computeVo2maxSeries,
+  getFormZone,
+  bestVO2maxEstimate,
+} from "@/lib/training/metrics";
 import { FormChart } from "@/components/charts/FormChart";
-import { HeatmapCalendar } from "@/components/charts/HeatmapCalendar";
+import { Vo2maxChart } from "@/components/charts/Vo2maxChart";
+import { ActivityCalendar } from "@/components/charts/ActivityCalendar";
 import { Header } from "@/components/layout/Header";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import type { FormPoint } from "@/lib/training/metrics";
@@ -23,9 +30,9 @@ export default async function DashboardPage() {
     );
   }
 
-  // Fetch all activities for this user ordered by date
   const userActivities = db
     .select({
+      id: activities.id,
       startedAt: activities.startedAt,
       trainingLoad: activities.trainingLoad,
       distanceM: activities.distanceM,
@@ -38,7 +45,8 @@ export default async function DashboardPage() {
     .orderBy(asc(activities.startedAt))
     .all();
 
-  // Build form series
+  const profile = { hrMax: user.hrMax, hrRest: user.hrRest, lthrBpm: user.lthrBpm };
+
   const dailyLoads = fillGaps(userActivities);
   const series: FormPoint[] = computeFormSeries(dailyLoads);
 
@@ -50,32 +58,27 @@ export default async function DashboardPage() {
 
   const hasData = series.length > 0;
 
-  const vo2max = bestVO2maxEstimate(userActivities, {
-    hrMax: user.hrMax,
-    hrRest: user.hrRest,
-    lthrBpm: user.lthrBpm,
-  });
+  const vo2max = bestVO2maxEstimate(userActivities, profile);
+  const vo2maxSeries = computeVo2maxSeries(userActivities, profile);
 
   return (
     <>
       <Header />
       <main className="min-h-screen bg-gray-50">
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-          <div className="mb-8 flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-                Dashboard
-              </h1>
-              <p className="mt-1 text-sm text-gray-500">
-                {hasData
-                  ? `${userActivities.length} activit${userActivities.length !== 1 ? "ies" : "y"} recorded`
-                  : "No activities yet"}
-              </p>
-            </div>
+          <div className="mb-8">
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+              Dashboard
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              {hasData
+                ? `${userActivities.length} activit${userActivities.length !== 1 ? "ies" : "y"} recorded`
+                : "No activities yet"}
+            </p>
           </div>
 
           {hasData ? (
-            <>
+            <div className="space-y-6">
               <FormChart
                 series={series}
                 currentZone={currentZone}
@@ -84,8 +87,9 @@ export default async function DashboardPage() {
                 currentTSB={currentTSB}
                 vo2max={vo2max}
               />
-              <HeatmapCalendar activities={userActivities} />
-            </>
+              <ActivityCalendar activities={userActivities} />
+              <Vo2maxChart series={vo2maxSeries} />
+            </div>
           ) : (
             <EmptyState />
           )}
