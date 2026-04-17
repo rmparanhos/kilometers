@@ -40,7 +40,8 @@ Open [http://localhost:3000](http://localhost:3000) — no login required.
 
 Visit `/profile` to set:
 - **Heart rate profile** (HR Max, HR Rest, LTHR) — selects the best training load model
-- **Garmin Connect credentials** — enables one-click activity sync
+- **Garmin Connect credentials** — enables activity sync
+- **Sync and data management** — trigger Garmin sync or clear all activities
 
 ## Project Structure
 
@@ -78,14 +79,15 @@ Each activity stores which model was used (`loadModel` column). Changing the HR 
 - [x] VO₂max estimation from submaximal HR data (Swain et al. 1994)
 - [x] Garmin Connect sync
 - [x] Training load heatmap calendar
+- [x] Activity detail page — per-activity stats, pace & HR chart (by distance), lap splits
+- [x] Weather snapshot per activity (Open-Meteo historical archive, fetched at upload/sync time)
+- [ ] Distance distribution histogram — frequency of activities by distance bucket (5 km, 10 km, 21 km, 42 km, etc.)
+- [ ] Cadence distribution histogram — cadence frequency curve per activity and aggregate trend
+- [ ] Pace best-effort curves — best time per canonical distance (1 km, 5 km, 10 km, 21 km, 42 km) across all activities, plotted over time
+- [ ] VO₂max evolution chart — estimated VO₂max over time from submaximal efforts
 - [ ] Parser unit tests (validate .fit and .gpx output)
-- [ ] Pace and HR curves by distance (best effort over time per distance bucket)
-- [ ] Cadence trend chart (avg and max cadence over time, with distribution histogram)
-- [ ] Distance distribution histogram (frequency of activities by distance bucket)
-- [ ] VO₂max evolution chart (estimated VO₂max over time from submaximal efforts)
-- [ ] Shoe tracking — accumulated km, pace trend, and retirement alert per shoe (data source TBD: manual entry, Garmin gear API, or .fit device field)
+- [ ] Shoe tracking — accumulated km, pace trend, and retirement alert per shoe
 - [ ] Performance curve by distance over time
-- [ ] Activity calendar with daily weather (temperature at activity location and time)
 
 ## Self-hosting
 
