@@ -18,6 +18,7 @@ import { eq, and } from "drizzle-orm";
 import { parseFitBuffer, extractActivityFromFit } from "@/lib/parsers/fit";
 import { normalizeToActivityInsert } from "@/lib/parsers/normalize";
 import { estimateTrainingLoadWithModel } from "@/lib/training/metrics";
+import { fetchWeather } from "@/lib/weather";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -179,8 +180,23 @@ export async function syncGarminActivities(
         insertData.name = garminActivity.activityName;
       }
 
-      db.insert(activities).values(insertData).run();
+      const [created] = db.insert(activities).values(insertData).returning().all();
       result.imported++;
+
+      // Best-effort weather enrichment — never fails the sync
+      if (created.startLat != null && created.startLon != null) {
+        try {
+          const weather = await fetchWeather(created.startLat, created.startLon, created.startedAt);
+          if (weather) {
+            db.update(activities)
+              .set({ weatherJson: JSON.stringify(weather) })
+              .where(eq(activities.id, created.id))
+              .run();
+          }
+        } catch {
+          // silently ignore weather fetch errors
+        }
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       console.error(
