@@ -2,7 +2,6 @@ import { db } from "@/lib/db";
 import { activities } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Header } from "@/components/layout/Header";
-import { ClearActivitiesButton } from "@/components/layout/ClearActivitiesButton";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -42,12 +41,9 @@ export default async function ActivitiesPage() {
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
               Activities
             </h1>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-400">
-                {userActivities.length} total
-              </span>
-              {userActivities.length > 0 && <ClearActivitiesButton />}
-            </div>
+            <span className="text-sm text-gray-400">
+              {userActivities.length} total
+            </span>
           </div>
 
           {userActivities.length === 0 ? (

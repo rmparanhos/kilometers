@@ -5,7 +5,6 @@ import { fillGaps, computeFormSeries, getFormZone, bestVO2maxEstimate } from "@/
 import { FormChart } from "@/components/charts/FormChart";
 import { HeatmapCalendar } from "@/components/charts/HeatmapCalendar";
 import { Header } from "@/components/layout/Header";
-import { GarminSyncButton } from "@/components/layout/GarminSyncButton";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import type { FormPoint } from "@/lib/training/metrics";
 
@@ -50,7 +49,6 @@ export default async function DashboardPage() {
   const currentZone = getFormZone(currentTSB);
 
   const hasData = series.length > 0;
-  const hasGarmin = !!(user.garminEmail && user.garminPassword);
 
   const vo2max = bestVO2maxEstimate(userActivities, {
     hrMax: user.hrMax,
@@ -74,7 +72,6 @@ export default async function DashboardPage() {
                   : "No activities yet"}
               </p>
             </div>
-            {hasGarmin && <GarminSyncButton />}
           </div>
 
           {hasData ? (
