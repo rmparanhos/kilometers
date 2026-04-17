@@ -85,6 +85,7 @@ Each activity stores which model was used (`loadModel` column). Changing the HR 
 - [ ] Cadence distribution histogram — cadence frequency curve per activity and aggregate trend
 - [ ] Pace best-effort curves — best time per canonical distance (1 km, 5 km, 10 km, 21 km, 42 km) across all activities, plotted over time
 - [ ] VO₂max evolution chart — estimated VO₂max over time from submaximal efforts
+- [ ] Activity calendar view — month grid where each day shows activities (distance, pace, HR), clickable to detail page
 - [ ] Parser unit tests (validate .fit and .gpx output)
 - [ ] Shoe tracking — accumulated km, pace trend, and retirement alert per shoe
 - [ ] Performance curve by distance over time
