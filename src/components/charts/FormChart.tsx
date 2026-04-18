@@ -16,6 +16,7 @@ import type { FormPoint, FormZone } from "@/lib/training/metrics";
 import { ZONE_LABELS } from "@/lib/training/metrics";
 import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { RunnerSprite } from "@/components/RunnerSprite";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -184,10 +185,15 @@ export function FormChart({
       {/* Zone status card */}
       <Card style={{ borderColor: zoneColor + "40", backgroundColor: zoneColor + "0d" }}>
         <CardContent>
-          <p className="font-semibold text-lg leading-tight" style={{ color: zoneColor }}>
-            {zoneInfo.label}
-          </p>
-          <p className="mt-0.5 text-sm text-muted-foreground">{zoneInfo.advice}</p>
+          <div className="flex items-center gap-4">
+            <RunnerSprite zone={currentZone} size={52} />
+            <div>
+              <p className="font-semibold text-lg leading-tight" style={{ color: zoneColor }}>
+                {zoneInfo.label}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{zoneInfo.advice}</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
