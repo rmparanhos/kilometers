@@ -182,7 +182,6 @@ export async function syncGarminActivities(
 
       const [created] = db.insert(activities).values(insertData).returning().all();
       result.imported++;
-
       // Best-effort weather enrichment — never fails the sync
       if (created.startLat != null && created.startLon != null) {
         try {

@@ -134,7 +134,7 @@ export function ActivityCalendar({ activities }: { activities: CalActivity[] }) 
                       <p className="text-[10px] font-semibold text-blue-800 leading-tight truncate">
                         {formatDistance(act.distanceM)}
                       </p>
-                      {act.avgPaceMperS && (
+                      {act.avgPaceMperS != 0 && (
                         <p className="text-[10px] text-blue-600 leading-tight">
                           {formatPace(act.avgPaceMperS)}
                         </p>
