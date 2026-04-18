@@ -8,7 +8,6 @@ Transform activity data into intuitive visual insights — making the relationsh
 
 - **Framework**: Next.js 16 (App Router) + TypeScript
 - **Database**: SQLite via Drizzle ORM (`better-sqlite3`)
-- **Auth**: NextAuth.js v4 (credentials-based, single user)
 - **Visualization**: Recharts
 - **File parsing**: `fit-file-parser` (.fit), `fast-xml-parser` (.gpx)
 
@@ -22,30 +21,27 @@ cd kilometers
 npm install
 ```
 
-### 2. Configure environment
-
-```bash
-cp .env.example .env.local
-# Edit .env.local — set NEXTAUTH_SECRET to a random string:
-openssl rand -base64 32
-```
-
-### 3. Initialize the database
+### 2. Initialize the database
 
 ```bash
 npm run db:migrate
 npm run db:seed
 ```
 
-Default credentials: `admin@localhost` / `changeme` — change via `SEED_EMAIL` and `SEED_PASSWORD` in `.env.local`.
-
-### 4. Start the dev server
+### 3. Start the dev server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and log in.
+Open [http://localhost:3000](http://localhost:3000) — no login required.
+
+### 4. Configure your profile
+
+Visit `/profile` to set:
+- **Heart rate profile** (HR Max, HR Rest, LTHR) — selects the best training load model
+- **Garmin Connect credentials** — enables activity sync
+- **Sync and data management** — trigger Garmin sync or clear all activities
 
 ## Project Structure
 
@@ -54,25 +50,49 @@ src/
 ├── app/              # Next.js App Router pages and API routes
 ├── lib/
 │   ├── db/           # Drizzle schema and DB singleton
-│   ├── auth/         # NextAuth config
+│   ├── auth/         # getCurrentUser helper
 │   ├── parsers/      # .fit and .gpx parsers
-│   └── training/     # CTL/ATL/TSB calculation functions
+│   ├── sync/         # Garmin Connect sync
+│   └── training/     # CTL/ATL/TSB and VO2max calculation
 └── components/       # UI, chart, and layout components
 ```
 
+## Training Load Models
+
+The app automatically selects the best model based on available HR data:
+
+| Priority | Model | Required | Reference |
+|---|---|---|---|
+| 1 | Banister TRIMP | HR Max + HR Rest | Banister (1991) |
+| 2 | Linear hrTSS | Avg HR + LTHR | Manzi et al. (2009) |
+| 3 | Duration fallback | — | 60 TSS/hour |
+
+Each activity stores which model was used (`loadModel` column). Changing the HR profile automatically recalculates all existing activities.
+
 ## Roadmap
 
-- [x] Project scaffold (Next.js + Drizzle + NextAuth)
-- [ ] .fit and .gpx file parsers with tests
-- [ ] CTL/ATL/TSB calculation (validated against Intervals.icu)
-- [ ] Form chart visualization with contextual zones
-- [ ] Training load heatmap
-- [ ] Equipment dashboard (pace/HR/cadence/km by shoe)
+- [x] Project scaffold (Next.js + Drizzle)
+- [x] .fit and .gpx file parsers
+- [x] CTL/ATL/TSB performance manager chart (Banister impulse–response)
+- [x] Contextual training zones with advice (peak / fresh / neutral / optimal / high risk)
+- [x] Dual training load model (Banister TRIMP + linear hrTSS) with auto-selection
+- [x] VO₂max estimation from submaximal HR data (Swain et al. 1994)
+- [x] Garmin Connect sync
+- [x] Training load heatmap calendar
+- [x] Activity detail page — per-activity stats, pace & HR chart (by distance), lap splits
+- [x] Weather snapshot per activity (Open-Meteo historical archive, fetched at upload/sync time)
+- [ ] Distance distribution histogram — frequency of activities by distance bucket (5 km, 10 km, 21 km, 42 km, etc.)
+- [ ] Cadence distribution histogram — cadence frequency curve per activity and aggregate trend
+- [ ] Pace best-effort curves — best time per canonical distance (1 km, 5 km, 10 km, 21 km, 42 km) across all activities, plotted over time
+- [ ] VO₂max evolution chart — estimated VO₂max over time from submaximal efforts
+- [ ] Activity calendar view — month grid where each day shows activities (distance, pace, HR), clickable to detail page
+- [ ] Parser unit tests (validate .fit and .gpx output)
+- [ ] Shoe tracking — accumulated km, pace trend, and retirement alert per shoe
 - [ ] Performance curve by distance over time
 
 ## Self-hosting
 
-The app uses a local SQLite file (`db/local.db`) — no external database required. Deploy anywhere Node.js runs (Vercel, Fly.io, VPS).
+The app uses a local SQLite file (`db/local.db`) — no external database or authentication required. Deploy anywhere Node.js runs (Vercel, Fly.io, VPS).
 
 For Vercel deploys, SQLite requires a persistent volume or switching to Turso (libSQL).
 

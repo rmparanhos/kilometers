@@ -110,8 +110,27 @@ export function extractActivityFromFit(data: ParsedFit): ParsedActivityData {
       ? session.avg_cadence * 2
       : undefined;
 
-  // First record may carry the GPS start point
-  const firstRecord = records[0];
+  // Session-level start position is the most reliable source.
+  // Fall back to first record that has a valid GPS fix (|lat| ≤ 90°).
+  // records without GPS lock have the sentinel value 0x7FFFFFFF which
+  // converts to ~180° — well outside the valid latitude range.
+  const sessionLat = session["start_position_lat"] as number | undefined;
+  const sessionLon = session["start_position_long"] as number | undefined;
+
+  const firstGpsRecord = records.find(
+    (r) =>
+      r["position_lat"] != null &&
+      Math.abs(r["position_lat"] as number) <= 90
+  );
+
+  const startLat =
+    sessionLat != null && Math.abs(sessionLat) <= 90
+      ? sessionLat
+      : (firstGpsRecord?.["position_lat"] as number | undefined);
+  const startLon =
+    sessionLon != null && Math.abs(sessionLon) <= 180
+      ? sessionLon
+      : (firstGpsRecord?.["position_long"] as number | undefined);
 
   return {
     name: session.sport ? String(session.sport) : undefined,
@@ -122,8 +141,8 @@ export function extractActivityFromFit(data: ParsedFit): ParsedActivityData {
     distanceM: session.total_distance ?? 0,
     elevationGainM: session.total_ascent,
     elevationLossM: session.total_descent,
-    startLat: firstRecord?.["position_lat"] as number | undefined,
-    startLon: firstRecord?.["position_long"] as number | undefined,
+    startLat,
+    startLon,
     avgHeartRateBpm: session.avg_heart_rate,
     maxHeartRateBpm: session.max_heart_rate,
     avgCadenceRpm,

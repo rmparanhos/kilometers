@@ -1,43 +1,35 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
 import Link from "next/link";
-import { SignOutButton } from "./SignOutButton";
 
-export async function Header() {
-  const session = await getServerSession(authOptions);
-
+export function Header() {
   return (
-    <header className="border-b border-gray-100 bg-white">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+    <header className="bg-slate-900 border-b border-slate-800">
+      <div className="mx-auto flex h-14 max-w-5xl items-center px-4 sm:px-6">
         <nav className="flex items-center gap-6">
           <Link
             href="/dashboard"
-            className="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors"
+            className="text-sm font-bold text-green-400 hover:text-green-300 transition-colors tracking-tight"
           >
-            Project Kilometer
+            Kilometer
           </Link>
           <Link
             href="/activities"
-            className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            className="text-sm text-slate-300 hover:text-white transition-colors"
           >
-            Atividades
+            Activities
           </Link>
           <Link
             href="/equipment"
-            className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            className="text-sm text-slate-300 hover:text-white transition-colors"
           >
-            Equipamentos
+            Equipment
+          </Link>
+          <Link
+            href="/profile"
+            className="text-sm text-slate-300 hover:text-white transition-colors"
+          >
+            Profile
           </Link>
         </nav>
-
-        {session?.user && (
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-400">
-              {session.user.email}
-            </span>
-            <SignOutButton />
-          </div>
-        )}
       </div>
     </header>
   );

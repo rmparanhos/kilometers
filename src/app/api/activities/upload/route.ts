@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/config";
 import { db } from "@/lib/db";
-import { activities } from "@/lib/db/schema";
+import { activities, users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { parseFitBuffer, extractActivityFromFit } from "@/lib/parsers/fit";
 import { parseGpxString, extractActivityFromGpx } from "@/lib/parsers/gpx";
 import { normalizeToActivityInsert } from "@/lib/parsers/normalize";
-import {
-  estimateHrTSS,
-  estimateLoadFromDuration,
-} from "@/lib/training/metrics";
+import { estimateTrainingLoadWithModel } from "@/lib/training/metrics";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { fetchWeather } from "@/lib/weather";
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "No user found" }, { status: 500 });
 
-  const userId = (session.user as { id: string }).id;
+  const userId = user.id;
+  const userProfile = db.select({ hrMax: users.hrMax, hrRest: users.hrRest, lthrBpm: users.lthrBpm })
+    .from(users).where(eq(users.id, userId)).get() ?? {};
 
   let formData: FormData;
   try {
@@ -58,19 +56,35 @@ export async function POST(req: NextRequest) {
       parsed = extractActivityFromGpx(gpxData);
     }
 
-    // Calculate training load (hrTSS if HR available, else duration-based estimate)
-    const trainingLoad =
-      parsed.avgHeartRateBpm != null
-        ? estimateHrTSS(parsed.durationSec, parsed.avgHeartRateBpm)
-        : estimateLoadFromDuration(parsed.durationSec);
+    const { load: trainingLoad, model: loadModel } = estimateTrainingLoadWithModel(
+      parsed.durationSec,
+      parsed.avgHeartRateBpm,
+      userProfile
+    );
 
     const insertData = normalizeToActivityInsert(parsed, userId, {
       sourceFile: file.name,
       sourceFormat: format,
       trainingLoad,
+      loadModel,
     });
 
     const [created] = db.insert(activities).values(insertData).returning().all();
+
+    // Best-effort weather enrichment — never fails the upload
+    if (created.startLat != null && created.startLon != null) {
+      try {
+        const weather = await fetchWeather(created.startLat, created.startLon, created.startedAt);
+        if (weather) {
+          db.update(activities)
+            .set({ weatherJson: JSON.stringify(weather) })
+            .where(eq(activities.id, created.id))
+            .run();
+        }
+      } catch {
+        // silently ignore weather fetch errors
+      }
+    }
 
     return NextResponse.json({ activity: created }, { status: 201 });
   } catch (err) {

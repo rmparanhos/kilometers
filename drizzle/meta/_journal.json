@@ -8,6 +8,27 @@
       "when": 1775866084605,
       "tag": "0000_mushy_talkback",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1776134438523,
+      "tag": "0001_sour_robbie_robertson",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1776215416550,
+      "tag": "0002_fuzzy_amazoness",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1776361531207,
+      "tag": "0003_sturdy_redwing",
+      "breakpoints": true
     }
   ]
 }
