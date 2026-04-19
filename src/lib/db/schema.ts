@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, unique } from "drizzle-orm/sqlite-core";
 
 // ---------------------------------------------------------------------------
 // Users
@@ -157,6 +157,32 @@ export const activityLaps = sqliteTable("activity_laps", {
 });
 
 // ---------------------------------------------------------------------------
+// Garmin raw downloads
+// ---------------------------------------------------------------------------
+
+/**
+ * One row per downloaded Garmin activity. The .fit file is stored on disk at
+ * fitPath (relative to process.cwd()). Recalculate reads from here instead of
+ * hitting Garmin Connect again.
+ */
+export const garminRaws = sqliteTable(
+  "garmin_raws",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    garminActivityId: text("garmin_activity_id").notNull(),
+    fetchedAt: integer("fetched_at", { mode: "timestamp" }).notNull(),
+    garminMetaJson: text("garmin_meta_json"),
+    fitPath: text("fit_path"),
+  },
+  (t) => [unique().on(t.userId, t.garminActivityId)]
+);
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 export type User = typeof users.$inferSelect;
@@ -167,3 +193,5 @@ export type Activity = typeof activities.$inferSelect;
 export type ActivityInsert = typeof activities.$inferInsert;
 export type ActivityLap = typeof activityLaps.$inferSelect;
 export type ActivityLapInsert = typeof activityLaps.$inferInsert;
+export type GarminRaw = typeof garminRaws.$inferSelect;
+export type GarminRawInsert = typeof garminRaws.$inferInsert;

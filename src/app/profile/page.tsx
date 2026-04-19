@@ -1,6 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { ProfileForm } from "@/components/layout/ProfileForm";
-import { GarminSyncButton } from "@/components/layout/GarminSyncButton";
+import { GarminDownloadButton, GarminRecalcButton } from "@/components/layout/GarminRecalcButton";
 import { ClearActivitiesButton } from "@/components/layout/ClearActivitiesButton";
 import { getCurrentUser } from "@/lib/auth/current-user";
 
@@ -29,12 +29,21 @@ export default async function ProfilePage() {
 
           <div className="mt-10 space-y-8 border-t border-gray-200 pt-8">
             {/* Garmin sync */}
-            <div>
-              <p className="text-sm font-semibold text-foreground mb-1">Sync Garmin</p>
-              <p className="text-xs text-muted-foreground mb-4">
-                Pull recent activities from Garmin Connect. Requires credentials above.
-              </p>
-              <GarminSyncButton />
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-1">Download from Garmin</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Fetch recent activities from Garmin Connect and save the raw .fit files locally.
+                </p>
+                <GarminDownloadButton />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-1">Recalculate</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Reprocess saved .fit files using your current HR profile. Use after updating HR max / HR rest.
+                </p>
+                <GarminRecalcButton />
+              </div>
             </div>
 
             {/* Danger zone */}

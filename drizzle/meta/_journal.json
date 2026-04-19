@@ -29,6 +29,13 @@
       "when": 1776361531207,
       "tag": "0003_sturdy_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1776559897726,
+      "tag": "0004_abandoned_supernaut",
+      "breakpoints": true
     }
   ]
 }
