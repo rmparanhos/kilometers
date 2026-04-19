@@ -41,15 +41,16 @@ export interface SyncResult {
 // Authentication
 // ---------------------------------------------------------------------------
 
-const TOKEN_PATH = path.join(process.cwd(), "db", "garmin-token.json");
+const TOKEN_FILE = "garmin-token.json"
 
 async function createAuthenticatedClient(email: string, password: string): Promise<GarminConnect> {
   const gc = new GarminConnect({ username: email, password });
+  const token_final_path = path.join(process.cwd(), "db", email + '-' + TOKEN_FILE);
 
   // Try to reuse a cached token to avoid re-authenticating every time
-  if (fs.existsSync(TOKEN_PATH)) {
+  if (fs.existsSync(token_final_path)) {
     try {
-      await gc.loadTokenByFile(TOKEN_PATH);
+      await gc.loadTokenByFile(token_final_path);
       return gc;
     } catch {
       // Token expired or invalid — fall through to full login
@@ -60,7 +61,8 @@ async function createAuthenticatedClient(email: string, password: string): Promi
 
   // Persist token for next sync
   try {
-    await gc.exportTokenToFile(TOKEN_PATH);
+    await gc.exportTokenToFile(token_final_path);
+    
   } catch {
     // Non-fatal — next sync will just re-authenticate
   }
@@ -133,7 +135,7 @@ export async function syncGarminActivities(
   const targetActivities = activityTypeKey
     ? allActivities.filter((a) => a.activityType?.typeKey === activityTypeKey)
     : allActivities;
- 
+
   const result: SyncResult = { imported: 0, skipped: 0, errors: [] };
 
   for (const garminActivity of targetActivities) {
