@@ -16,7 +16,7 @@
  *
  * All functions are pure and have no DB dependency so they are trivially testable.
  */
-import { addDays, startOfDay, format, isAfter } from "date-fns";
+import { addDays, addWeeks, startOfDay, startOfISOWeek, format, isAfter } from "date-fns";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -433,4 +433,79 @@ export function bestVO2maxEstimate(
     estimates.length - 1
   );
   return estimates[idx];
+}
+
+// ---------------------------------------------------------------------------
+// Weekly volume
+// ---------------------------------------------------------------------------
+
+export interface WeeklyVolumePoint {
+  weekStart: Date;
+  weekLabel: string;   // "Apr 14"
+  distanceKm: number;
+  durationMin: number;
+  load: number;
+  activityCount: number;
+  rollingAvgKm: number; // 4-week rolling average
+}
+
+/**
+ * Groups activities into ISO weeks (Mon–Sun) and returns a contiguous series
+ * covering the last `weeks` weeks up to today. Empty weeks are included as zeros.
+ * A 4-week rolling average is appended to each point.
+ */
+export function computeWeeklyVolume(
+  acts: {
+    startedAt: Date;
+    distanceM: number;
+    durationSec: number;
+    trainingLoad: number | null;
+  }[],
+  weeks = 52
+): WeeklyVolumePoint[] {
+  const today = new Date();
+  const thisWeekStart = startOfISOWeek(today);
+  const from = addWeeks(thisWeekStart, -(weeks - 1));
+
+  // Aggregate by week key
+  const byWeek = new Map<string, { distanceM: number; durationSec: number; load: number; count: number }>();
+  for (const act of acts) {
+    const ws = startOfISOWeek(act.startedAt);
+    if (ws < from) continue;
+    const key = format(ws, "yyyy-MM-dd");
+    const prev = byWeek.get(key) ?? { distanceM: 0, durationSec: 0, load: 0, count: 0 };
+    byWeek.set(key, {
+      distanceM: prev.distanceM + act.distanceM,
+      durationSec: prev.durationSec + act.durationSec,
+      load: prev.load + (act.trainingLoad ?? 0),
+      count: prev.count + 1,
+    });
+  }
+
+  // Build contiguous week series
+  const points: WeeklyVolumePoint[] = [];
+  let current = from;
+  while (!isAfter(current, thisWeekStart)) {
+    const key = format(current, "yyyy-MM-dd");
+    const week = byWeek.get(key);
+    points.push({
+      weekStart: new Date(current),
+      weekLabel: format(current, "MMM d"),
+      distanceKm: week ? Math.round(week.distanceM / 100) / 10 : 0,
+      durationMin: week ? Math.round(week.durationSec / 60) : 0,
+      load: week ? Math.round(week.load * 10) / 10 : 0,
+      activityCount: week?.count ?? 0,
+      rollingAvgKm: 0,
+    });
+    current = addWeeks(current, 1);
+  }
+
+  // 4-week rolling average (inclusive of current week)
+  for (let i = 0; i < points.length; i++) {
+    const window = points.slice(Math.max(0, i - 3), i + 1);
+    const avg = window.reduce((s, p) => s + p.distanceKm, 0) / window.length;
+    points[i].rollingAvgKm = Math.round(avg * 10) / 10;
+  }
+
+  return points;
 }

@@ -5,12 +5,14 @@ import {
   fillGaps,
   computeFormSeries,
   computeVo2maxSeries,
+  computeWeeklyVolume,
   getFormZone,
   bestVO2maxEstimate,
 } from "@/lib/training/metrics";
 import { FormChart } from "@/components/charts/FormChart";
 import { Vo2maxChart } from "@/components/charts/Vo2maxChart";
 import { ActivityCalendar } from "@/components/charts/ActivityCalendar";
+import { WeeklyVolumeChart } from "@/components/charts/WeeklyVolumeChart";
 import { Header } from "@/components/layout/Header";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import type { FormPoint } from "@/lib/training/metrics";
@@ -60,6 +62,7 @@ export default async function DashboardPage() {
 
   const vo2max = bestVO2maxEstimate(userActivities, profile);
   const vo2maxSeries = computeVo2maxSeries(userActivities, profile);
+  const weeklyVolume = computeWeeklyVolume(userActivities);
 
   return (
     <>
@@ -87,6 +90,7 @@ export default async function DashboardPage() {
                 currentTSB={currentTSB}
                 vo2max={vo2max}
               />
+              <WeeklyVolumeChart series={weeklyVolume} />
               <ActivityCalendar activities={userActivities} />
               <Vo2maxChart series={vo2maxSeries} />
             </div>
