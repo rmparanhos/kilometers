@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let limit = 30;
+  let limit = 500;
   try {
     const body = await req.json().catch(() => ({}));
     if (typeof body.limit === "number") limit = Math.min(body.limit, 200);
