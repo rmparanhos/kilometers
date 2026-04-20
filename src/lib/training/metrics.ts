@@ -355,12 +355,18 @@ export function estimateVO2maxFromRun(
 export interface Vo2maxPoint {
   date: Date;
   dateLabel: string;
-  vo2max: number;
+  vo2max: number;      // raw per-activity estimate
+  ewmaVo2max: number;  // time-decayed EWMA (τ = 28 days by default)
 }
 
 /**
  * Returns one VO2max estimate per activity (filtered to valid submaximal
- * efforts), sorted ascending by date. Used to plot VO2max evolution over time.
+ * efforts), sorted ascending by date. Includes a time-decayed EWMA
+ * (τ = 28 days by default) alongside the raw per-activity estimate.
+ *
+ * EWMA alpha: α = 1 − exp(−Δdays / τ)
+ * Handles irregular training frequency — a long gap pulls the estimate
+ * more strongly toward the new observation than a run done the day before.
  */
 export function computeVo2maxSeries(
   acts: {
@@ -370,11 +376,12 @@ export function computeVo2maxSeries(
     durationSec: number;
     distanceM: number;
   }[],
-  profile: HrProfile
+  profile: HrProfile,
+  tauDays = 28
 ): Vo2maxPoint[] {
   if (!profile.hrMax || !profile.hrRest) return [];
 
-  const points: Vo2maxPoint[] = [];
+  const raw: { date: Date; vo2max: number }[] = [];
   for (const act of acts) {
     if (!act.avgPaceMperS || !act.avgHeartRateBpm) continue;
     if (act.durationSec < 600) continue;
@@ -385,15 +392,27 @@ export function computeVo2maxSeries(
       profile.hrRest
     );
     if (vo2max != null) {
-      points.push({
-        date: act.startedAt,
-        dateLabel: format(act.startedAt, "yyyy-MM-dd"),
-        vo2max,
-      });
+      raw.push({ date: act.startedAt, vo2max });
     }
   }
 
-  return points.sort((a, b) => a.date.getTime() - b.date.getTime());
+  raw.sort((a, b) => a.date.getTime() - b.date.getTime());
+  if (raw.length === 0) return [];
+
+  let ewma = raw[0].vo2max;
+  return raw.map((p, i) => {
+    if (i > 0) {
+      const daysDelta = (p.date.getTime() - raw[i - 1].date.getTime()) / 86_400_000;
+      const alpha = 1 - Math.exp(-daysDelta / tauDays);
+      ewma = ewma + (p.vo2max - ewma) * alpha;
+    }
+    return {
+      date: p.date,
+      dateLabel: format(p.date, "yyyy-MM-dd"),
+      vo2max: p.vo2max,
+      ewmaVo2max: Math.round(ewma * 10) / 10,
+    };
+  });
 }
 
 /**

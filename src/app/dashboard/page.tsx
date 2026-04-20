@@ -7,7 +7,6 @@ import {
   computeVo2maxSeries,
   computeWeeklyVolume,
   getFormZone,
-  bestVO2maxEstimate,
 } from "@/lib/training/metrics";
 import { FormChart } from "@/components/charts/FormChart";
 import { Vo2maxChart } from "@/components/charts/Vo2maxChart";
@@ -60,9 +59,8 @@ export default async function DashboardPage() {
 
   const hasData = series.length > 0;
 
-  const vo2max = bestVO2maxEstimate(userActivities, profile);
   const vo2maxSeries = computeVo2maxSeries(userActivities, profile);
-  const weeklyVolume = computeWeeklyVolume(userActivities);
+  const vo2max = vo2maxSeries[vo2maxSeries.length - 1]?.ewmaVo2max ?? null;
 
   return (
     <>
