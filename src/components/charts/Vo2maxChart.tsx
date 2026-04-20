@@ -28,9 +28,13 @@ function Vo2maxTooltip({
     <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-xs space-y-1">
       <p className="font-medium text-gray-500">{label}</p>
       {payload.map((entry) => (
-        <p key={entry.name} style={{ color: entry.color }} className="font-semibold">
-          {entry.name === "ewmaVo2max" ? "Trend" : "Raw"}: {entry.value.toFixed(1)} mL/kg/min
-        </p>
+        <div key={entry.name}>
+          {entry.name != "dateLabel" && (
+            <p style={{ color: entry.color }} className="font-semibold">
+              {entry.name === "ewmaVo2max" ? "Trend" : "Raw"}: {entry.value.toFixed(1)} mL/kg/min
+            </p>
+          )}
+        </div>
       ))}
     </div>
   );

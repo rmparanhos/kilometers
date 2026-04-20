@@ -61,6 +61,7 @@ export default async function DashboardPage() {
 
   const vo2maxSeries = computeVo2maxSeries(userActivities, profile);
   const vo2max = vo2maxSeries[vo2maxSeries.length - 1]?.ewmaVo2max ?? null;
+  const weeklyVolume = computeWeeklyVolume(userActivities);
 
   return (
     <>
