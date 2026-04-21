@@ -72,12 +72,30 @@ function ols(pts: { t: number; d: number }[]): { slope: number; intercept: numbe
 // ---------------------------------------------------------------------------
 
 /**
- * Keeps only non-dominated activities: an effort A dominates B if
- * A covers >= distance in <= time (strictly in at least one dimension).
- * The front represents the fastest pace achievable at each duration.
+ * Duration bins (seconds) used to sample one representative effort per range.
+ * Log-spaced across 3–50 min to capture the full shape of the speed-duration curve.
+ * Exporting allows the chart to show which bin each effort belongs to.
+ */
+export const DURATION_BINS: [number, number][] = [
+  [180,  420],   // 3–7 min  (fast 1–2 km efforts)
+  [420,  720],   // 7–12 min (2–3 km race pace)
+  [720,  1080],  // 12–18 min (3–5 km race pace)
+  [1080, 1680],  // 18–28 min (5–8 km race pace)
+  [1680, 2400],  // 28–40 min (8–12 km race pace)
+  [2400, 3000],  // 40–50 min (half-marathon effort)
+];
+
+/**
+ * Extracts one best effort per duration bin — the activity with the highest
+ * average pace (distanceM / durationSec) within each bin.
  *
- * Duration window: 3–50 min — below 3 min the model is unreliable;
- * above 50 min, pacing conservatism causes underestimation of CS.
+ * Using bins instead of the strict Pareto front prevents the common failure
+ * where a runner who only records one distance (e.g. 5 km) gets just one
+ * Pareto-front point and the regression can't fit.
+ *
+ * Returns only the bins that have data, sorted by duration ascending.
+ * At least 3 populated bins (spanning different duration ranges) are needed
+ * for a reliable regression.
  */
 export function extractBestEfforts(
   activities: { durationSec: number; distanceM: number; avgPaceMperS: number | null }[]
@@ -91,21 +109,17 @@ export function extractBestEfforts(
       a.avgPaceMperS > 0
   );
 
-  if (eligible.length < 2) return [];
-
-  const pareto = eligible.filter((a) => {
-    return !eligible.some(
-      (b) =>
-        b !== a &&
-        b.durationSec <= a.durationSec &&
-        b.distanceM >= a.distanceM &&
-        (b.durationSec < a.durationSec || b.distanceM > a.distanceM)
+  const best: CriticalSpeedEffort[] = [];
+  for (const [lo, hi] of DURATION_BINS) {
+    const inBin = eligible.filter((a) => a.durationSec >= lo && a.durationSec < hi);
+    if (inBin.length === 0) continue;
+    const fastest = inBin.reduce((b, a) =>
+      a.distanceM / a.durationSec > b.distanceM / b.durationSec ? a : b
     );
-  });
+    best.push({ durationSec: fastest.durationSec, distanceM: fastest.distanceM });
+  }
 
-  return pareto
-    .map(({ durationSec, distanceM }) => ({ durationSec, distanceM }))
-    .sort((a, b) => a.durationSec - b.durationSec);
+  return best.sort((a, b) => a.durationSec - b.durationSec);
 }
 
 // ---------------------------------------------------------------------------
