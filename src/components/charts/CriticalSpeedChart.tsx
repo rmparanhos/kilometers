@@ -97,36 +97,28 @@ function RacePredictions({ model }: { model: CriticalSpeedModel }) {
 interface CriticalSpeedChartProps {
   model: CriticalSpeedModel | null;
   allEfforts: CriticalSpeedEffort[];
-  paretoEfforts: CriticalSpeedEffort[];
+  keyEfforts: CriticalSpeedEffort[]; // one per duration bin, used for regression
 }
 
 export function CriticalSpeedChart({
   model,
   allEfforts,
-  paretoEfforts,
+  keyEfforts,
 }: CriticalSpeedChartProps) {
-  // Always show the card; the chart area changes based on whether we have a model
   const hasEnoughData = allEfforts.length >= 2;
 
   // Convert efforts to chart points { t (min), pace (min/km), d (m) }
+  const keySet = new Set(keyEfforts.map((e) => `${e.durationSec}|${e.distanceM}`));
+
   const allPoints = allEfforts.map((e) => ({
     t: e.durationSec / 60,
     pace: paceMinKm(e.distanceM / e.durationSec),
     d: e.distanceM,
+    isKey: keySet.has(`${e.durationSec}|${e.distanceM}`),
   }));
 
-  const paretoSet = new Set(
-    paretoEfforts.map((e) => `${e.durationSec}-${e.distanceM}`)
-  );
-  const nonParetoPoints = allPoints.filter(
-    (p) =>
-      !paretoSet.has(
-        `${Math.round(p.t * 60)}-${p.d}`
-      )
-  );
-  const paretoPoints = allPoints.filter((p) =>
-    paretoSet.has(`${Math.round(p.t * 60)}-${p.d}`)
-  );
+  const nonKeyPoints = allPoints.filter((p) => !p.isKey);
+  const keyPoints    = allPoints.filter((p) =>  p.isKey);
 
   const curvePoints = model ? hyperbolicCurve(model, 180, 3000, 80) : [];
   const csPaceMinKm = model ? paceMinKm(model.cs) : null;
@@ -218,10 +210,10 @@ export function CriticalSpeedChart({
                 />
               )}
 
-              {/* All eligible efforts (not on Pareto front) */}
-              {nonParetoPoints.length > 0 && (
+              {/* All eligible efforts not used in fit */}
+              {nonKeyPoints.length > 0 && (
                 <Scatter
-                  data={nonParetoPoints}
+                  data={nonKeyPoints}
                   fill="#d1d5db"
                   opacity={0.8}
                   r={3}
@@ -229,10 +221,10 @@ export function CriticalSpeedChart({
                 />
               )}
 
-              {/* Pareto-front efforts used for fit */}
-              {paretoPoints.length > 0 && (
+              {/* Key efforts (best per duration bin) used for regression */}
+              {keyPoints.length > 0 && (
                 <Scatter
-                  data={paretoPoints}
+                  data={keyPoints}
                   fill="#16a34a"
                   r={4}
                   name="Best effort"
@@ -243,27 +235,29 @@ export function CriticalSpeedChart({
         ) : (
           <div className="mt-4 rounded-lg border border-dashed border-gray-200 py-10 text-center">
             <p className="text-sm text-gray-500">
-              Record more runs of varying length to estimate Critical Speed.
+              No eligible runs yet (3–50 min range).
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              Minimum: 3 near-maximal efforts between 3 and 50 minutes.
+              The model needs at least 3 hard efforts at different durations to fit the curve.
             </p>
           </div>
         )}
 
-        {/* Model quality note */}
+        {/* Model quality / guidance note */}
         {model ? (
           <p className="text-xs text-gray-400 mt-3">
-            Green dots = best efforts (Pareto front) used for fit. Gray dots = other eligible runs.
+            Green dots = fastest run per duration range (used for fit). Gray = other eligible runs.
             {model.r2 < 0.92 && (
               <span className="text-amber-500 ml-1">
-                R² {model.r2.toFixed(2)} — moderate fit; vary effort duration for a sharper model.
+                R² {model.r2.toFixed(2)} — add efforts at more varied durations for a sharper model.
               </span>
             )}
           </p>
         ) : hasEnoughData ? (
           <p className="text-xs text-amber-500 mt-3">
-            Not enough best-effort data for a reliable CS model yet. Run a fast 5 km and a fast 20 min effort to establish the curve.
+            Runs found, but they cluster in too few duration ranges to fit the curve.
+            The model needs fastest efforts spread across at least 3 of these windows:
+            3–7 min, 7–12 min, 12–18 min, 18–28 min, 28–40 min, 40–50 min.
           </p>
         ) : null}
       </CardContent>

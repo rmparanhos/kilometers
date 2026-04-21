@@ -107,7 +107,7 @@ export default async function DashboardPage() {
                 allEfforts={csEligible.filter(
                   (a) => a.durationSec >= 180 && a.durationSec <= 3000 && a.distanceM > 0 && a.avgPaceMperS != null
                 )}
-                paretoEfforts={csPareto}
+                keyEfforts={csPareto}
               />
             </div>
           ) : (
