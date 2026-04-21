@@ -29,6 +29,12 @@ export function Header() {
           >
             Profile
           </Link>
+          <Link
+            href="/docs"
+            className="text-sm text-slate-300 hover:text-white transition-colors"
+          >
+            Docs
+          </Link>
         </nav>
       </div>
     </header>
