@@ -8,9 +8,14 @@ import {
   computeWeeklyVolume,
   getFormZone,
 } from "@/lib/training/metrics";
+import {
+  extractBestEfforts,
+  fitCriticalSpeed,
+} from "@/lib/training/critical-speed";
 import { FormChart } from "@/components/charts/FormChart";
 import { Vo2maxChart } from "@/components/charts/Vo2maxChart";
 import { ActivityCalendar } from "@/components/charts/ActivityCalendar";
+import { CriticalSpeedChart } from "@/components/charts/CriticalSpeedChart";
 import { WeeklyVolumeChart } from "@/components/charts/WeeklyVolumeChart";
 import { Header } from "@/components/layout/Header";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -63,6 +68,15 @@ export default async function DashboardPage() {
   const vo2max = vo2maxSeries[vo2maxSeries.length - 1]?.ewmaVo2max ?? null;
   const weeklyVolume = computeWeeklyVolume(userActivities);
 
+  const csEligible = userActivities.map((a) => ({
+    durationSec: a.durationSec,
+    distanceM: a.distanceM,
+    avgPaceMperS: a.avgPaceMperS,
+  }));
+  const csPareto = extractBestEfforts(csEligible);
+  const csModel  = fitCriticalSpeed(csPareto);
+  
+
   return (
     <>
       <Header />
@@ -92,6 +106,13 @@ export default async function DashboardPage() {
               <WeeklyVolumeChart series={weeklyVolume} />
               <ActivityCalendar activities={userActivities} />
               <Vo2maxChart series={vo2maxSeries} />
+              <CriticalSpeedChart
+                model={csModel}
+                allEfforts={csEligible.filter(
+                  (a) => a.durationSec >= 180 && a.durationSec <= 3000 && a.distanceM > 0 && a.avgPaceMperS != null
+                )}
+                paretoEfforts={csPareto}
+              />
             </div>
           ) : (
             <EmptyState />
