@@ -126,7 +126,7 @@ export function CriticalSpeedChart({
   // Y-axis domain: cover all visible points with padding
   const allPaces = [...allPoints.map((p) => p.pace), ...(csPaceMinKm ? [csPaceMinKm] : [])];
   const paceMin = allPaces.length ? Math.max(2, Math.min(...allPaces) - 0.5) : 3;
-  const paceMax = allPaces.length ? Math.min(12, Math.max(...allPaces) + 0.5) : 7;
+  const paceMax = paceMin + 2
 
   const xDomain = [3, 51] as [number, number];
 
@@ -213,7 +213,7 @@ export function CriticalSpeedChart({
               {/* All eligible efforts not used in fit */}
               {nonKeyPoints.length > 0 && (
                 <Scatter
-                  data={nonKeyPoints}
+                  data={nonKeyPoints.filter((p) => p.pace <= paceMax)}
                   fill="#d1d5db"
                   opacity={0.8}
                   r={3}
