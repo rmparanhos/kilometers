@@ -8,9 +8,14 @@ import {
   getFormZone,
   bestVO2maxEstimate,
 } from "@/lib/training/metrics";
+import {
+  extractBestEfforts,
+  fitCriticalSpeed,
+} from "@/lib/training/critical-speed";
 import { FormChart } from "@/components/charts/FormChart";
 import { Vo2maxChart } from "@/components/charts/Vo2maxChart";
 import { ActivityCalendar } from "@/components/charts/ActivityCalendar";
+import { CriticalSpeedChart } from "@/components/charts/CriticalSpeedChart";
 import { Header } from "@/components/layout/Header";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import type { FormPoint } from "@/lib/training/metrics";
@@ -61,6 +66,14 @@ export default async function DashboardPage() {
   const vo2max = bestVO2maxEstimate(userActivities, profile);
   const vo2maxSeries = computeVo2maxSeries(userActivities, profile);
 
+  const csEligible = userActivities.map((a) => ({
+    durationSec: a.durationSec,
+    distanceM: a.distanceM,
+    avgPaceMperS: a.avgPaceMperS,
+  }));
+  const csPareto = extractBestEfforts(csEligible);
+  const csModel  = fitCriticalSpeed(csPareto);
+
   return (
     <>
       <Header />
@@ -89,6 +102,13 @@ export default async function DashboardPage() {
               />
               <ActivityCalendar activities={userActivities} />
               <Vo2maxChart series={vo2maxSeries} />
+              <CriticalSpeedChart
+                model={csModel}
+                allEfforts={csEligible.filter(
+                  (a) => a.durationSec >= 180 && a.durationSec <= 3000 && a.distanceM > 0 && a.avgPaceMperS != null
+                )}
+                paretoEfforts={csPareto}
+              />
             </div>
           ) : (
             <EmptyState />
