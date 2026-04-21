@@ -11,12 +11,10 @@ export default async function AdminPage() {
       .select({
         id: users.id,
         name: users.name,
-        email: users.email,
         hrMax: users.hrMax,
         hrRest: users.hrRest,
         lthrBpm: users.lthrBpm,
         garminEmail: users.garminEmail,
-        createdAt: users.createdAt,
       })
       .from(users)
       .all(),
