@@ -124,6 +124,7 @@ src/
 
 ### Planned
 
+- [ ] **Strava sync** — OAuth 2.0 integration: connect account, download activities as JSON, recalculate training load independently (same download/recalculate split as Garmin). Requires `STRAVA_CLIENT_ID` + `STRAVA_CLIENT_SECRET` in `.env.local` (get at strava.com/settings/api).
 - [ ] Distance distribution histogram — frequency of activities by distance bucket
 - [ ] Cadence distribution histogram — cadence frequency curve per activity and aggregate
 - [ ] Pace best-effort curves — best time per canonical distance (1 km, 5 km, 10 km…) over time
