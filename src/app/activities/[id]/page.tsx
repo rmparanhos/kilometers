@@ -10,6 +10,7 @@ import { parseRecords } from "@/lib/parsers/records";
 import type { WeatherSnapshot } from "@/lib/weather";
 import { ActivityChart } from "@/components/charts/ActivityChart";
 import { Card, CardContent } from "@/components/ui/card";
+import { ActivityShoeSelector } from "@/components/layout/ActivityShoeSelector";
 
 function weatherEmoji(code: number): string {
   if (code === 0) return "☀️";
@@ -108,7 +109,10 @@ export default async function ActivityDetailPage({ params }: Props) {
                 {activity.sport}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground capitalize">{dateStr}</p>
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <p className="text-sm text-muted-foreground capitalize">{dateStr}</p>
+              <ActivityShoeSelector activityId={id} initialEquipmentId={activity.equipmentId} />
+            </div>
           </div>
 
           {/* Primary stats */}

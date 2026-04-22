@@ -66,9 +66,11 @@ export const equipment = sqliteTable("equipment", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  brand: text("brand"),
   type: text("type").notNull().default("shoe"), // shoe | watch | other
   purchaseDate: integer("purchase_date", { mode: "timestamp" }),
   retiredAt: integer("retired_at", { mode: "timestamp" }),
+  maxDistanceM: real("max_distance_m").notNull().default(800000), // Default 800km
   totalDistanceM: real("total_distance_m").notNull().default(0),
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" })

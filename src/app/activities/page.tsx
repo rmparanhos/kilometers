@@ -1,10 +1,11 @@
 import { db } from "@/lib/db";
-import { activities } from "@/lib/db/schema";
+import { activities, equipment } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Header } from "@/components/layout/Header";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Footprints } from "lucide-react";
 
 function ModelBadge({ model }: { model: string | null }) {
   if (!model) return <span className="text-muted-foreground">—</span>;
@@ -26,8 +27,15 @@ export default async function ActivitiesPage() {
   const userId = user?.id ?? "";
 
   const userActivities = db
-    .select()
+    .select({
+      activity: activities,
+      shoe: {
+        name: equipment.name,
+        brand: equipment.brand,
+      },
+    })
     .from(activities)
+    .leftJoin(equipment, eq(activities.equipmentId, equipment.id))
     .where(eq(activities.userId, userId))
     .orderBy(desc(activities.startedAt))
     .all();
@@ -60,6 +68,7 @@ export default async function ActivitiesPage() {
                   <tr className="border-b border-gray-100 bg-gray-50 text-left">
                     <th className="px-4 py-3 font-medium text-gray-500">Date</th>
                     <th className="px-4 py-3 font-medium text-gray-500">Name</th>
+                    <th className="px-4 py-3 font-medium text-gray-500">Gear</th>
                     <th className="px-4 py-3 font-medium text-gray-500">Distance</th>
                     <th className="px-4 py-3 font-medium text-gray-500">Duration</th>
                     <th className="px-4 py-3 font-medium text-gray-500">Pace</th>
@@ -69,7 +78,7 @@ export default async function ActivitiesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {userActivities.map((act) => (
+                  {userActivities.map(({ activity: act, shoe }) => (
                     <tr
                       key={act.id}
                       className="hover:bg-green-50/40 transition-colors"
@@ -78,12 +87,28 @@ export default async function ActivitiesPage() {
                         {act.startedAt.toLocaleDateString("en-GB")}
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-900">
-                        <a
-                          href={`/activities/${act.id}`}
-                          className="hover:underline"
-                        >
-                          {act.name ?? act.sport ?? "Activity"}
-                        </a>
+                        <div className="max-w-[200px] truncate" title={act.name ?? act.sport ?? "Activity"}>
+                          <a
+                            href={`/activities/${act.id}`}
+                            className="hover:underline"
+                          >
+                            {act.name ?? act.sport ?? "Activity"}
+                          </a>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 italic">
+                        <div className="max-w-[150px] truncate" title={shoe?.name ? `${shoe.brand ? shoe.brand + " " : ""}${shoe.name}` : undefined}>
+                          {shoe?.name ? (
+                            <span className="flex items-center gap-1.5 whitespace-nowrap not-italic font-medium text-slate-600">
+                              <Footprints className="size-3 text-slate-400 shrink-0" />
+                              <span className="truncate">
+                                {shoe.brand ? `${shoe.brand} ` : ""}{shoe.name}
+                              </span>
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 tabular-nums font-semibold text-green-700">
                         {formatDistance(act.distanceM)}
