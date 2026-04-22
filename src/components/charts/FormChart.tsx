@@ -303,44 +303,29 @@ export function FormChart({
             />
           </LineChart>
         </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Scientific references */}
-      <p className="text-xs text-gray-400 leading-relaxed mb-4">
-        PMC: Banister impulse–response framework —{" "}
-        <a
-          href="https://doi.org/10.1152/jappl.1990.69.3.1171"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-gray-600"
-        >
-          Morton, Fitz-Clarke &amp; Banister (1990)
-        </a>
-        {" · "}
-        <a
-          href="https://doi.org/10.1007/s40279-017-0703-z"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-gray-600"
-        >
-          Bourdon et al. (2017)
-        </a>
-        {vo2max != null && (
-          <>
-            {" · "}
-            VO₂max: ACSM running O₂ cost · %HRR ≈ %VO₂max —{" "}
+        {/* Scientific references */}
+          <p className="text-xs text-gray-400 leading-relaxed mt-2">
+            PMC: Banister impulse–response framework —{" "}
             <a
-              href="https://doi.org/10.1249/00005768-199401000-00019"
+              href="https://doi.org/10.1152/jappl.1990.69.3.1171"
               target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-gray-600"
             >
-              Swain et al. (1994)
+              Morton, Fitz-Clarke &amp; Banister (1990)
             </a>
-          </>
-        )}
-      </p>
+            {" · "}
+            <a
+              href="https://doi.org/10.1007/s40279-017-0703-z"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-gray-600"
+            >
+              Bourdon et al. (2017)
+            </a>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
