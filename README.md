@@ -1,8 +1,8 @@
 # Project Kilometer
 
-Open source running training analysis and visualization web app.
+Open-source running training analysis and visualization web app.
 
-Transform activity data into intuitive visual insights — making the relationship between fitness, fatigue, and form readable without a coach.
+Transform activity data into actionable insights — tracking fitness, fatigue, form, VO₂max, critical speed, and weekly volume without a coach or subscription.
 
 ## Stack
 
@@ -10,6 +10,7 @@ Transform activity data into intuitive visual insights — making the relationsh
 - **Database**: SQLite via Drizzle ORM (`better-sqlite3`)
 - **Visualization**: Recharts
 - **File parsing**: `fit-file-parser` (.fit), `fast-xml-parser` (.gpx)
+- **Styling**: Tailwind CSS v4
 
 ## Getting Started
 
@@ -25,7 +26,7 @@ npm install
 
 ```bash
 npm run db:migrate
-npm run db:seed
+npm run db:seed        # creates the default user (admin@localhost / changeme)
 ```
 
 ### 3. Start the dev server
@@ -41,60 +42,100 @@ Open [http://localhost:3000](http://localhost:3000) — no login required.
 Visit `/profile` to set:
 - **Heart rate profile** (HR Max, HR Rest, LTHR) — selects the best training load model
 - **Garmin Connect credentials** — enables activity sync
-- **Sync and data management** — trigger Garmin sync or clear all activities
 
-## Project Structure
+## Features
 
-```
-src/
-├── app/              # Next.js App Router pages and API routes
-├── lib/
-│   ├── db/           # Drizzle schema and DB singleton
-│   ├── auth/         # getCurrentUser helper
-│   ├── parsers/      # .fit and .gpx parsers
-│   ├── sync/         # Garmin Connect sync
-│   └── training/     # CTL/ATL/TSB and VO2max calculation
-└── components/       # UI, chart, and layout components
-```
+### Dashboard
+- **Performance Manager Chart** — CTL (fitness), ATL (fatigue), TSB (form) via Banister impulse-response model
+- **Weekly Volume** — bar chart of km per week with 8-week rolling average
+- **Activity Calendar** — heatmap of daily training load across the year
+- **VO₂max Evolution** — per-activity submaximal estimate with 28-day EWMA trend line
+- **Critical Speed** — hyperbolic speed-duration model (CS + D′), fitted from your fastest efforts per duration bin, with race time predictions for 5 km / 10 km / half / marathon
+
+### Activities
+- Upload `.fit` or `.gpx` files
+- Garmin Connect sync (download raw `.fit` files; recalculate separately without re-downloading)
+- Activity detail page: pace & HR chart, lap splits, weather snapshot at start time
+- Training load badge showing which model was used (Banister / hrTSS / duration)
+
+### Multi-user
+- `/admin` — create users (name + HR profile + Garmin credentials), switch active user, download/recalculate per user
+- Session switching via cookie — all dashboards and APIs reflect the selected user
+
+### Training Science Docs
+- `/docs` — explains every model used: Banister TRIMP, CTL/ATL/TSB, VO₂max estimation, Critical Speed, exercise intensity domains, and model limitations, with primary literature references
 
 ## Training Load Models
 
-The app automatically selects the best model based on available HR data:
-
-| Priority | Model | Required | Reference |
+| Priority | Model | Required inputs | Reference |
 |---|---|---|---|
 | 1 | Banister TRIMP | HR Max + HR Rest | Banister (1991) |
 | 2 | Linear hrTSS | Avg HR + LTHR | Manzi et al. (2009) |
 | 3 | Duration fallback | — | 60 TSS/hour |
 
-Each activity stores which model was used (`loadModel` column). Changing the HR profile automatically recalculates all existing activities.
+Changing the HR profile automatically recalculates load for all existing activities.
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── activities/          # list + detail pages
+│   ├── admin/               # user manager
+│   ├── api/
+│   │   ├── activities/      # upload + delete
+│   │   ├── admin/           # user CRUD + session switch
+│   │   ├── profile/         # HR profile patch
+│   │   └── sync/garmin/     # download + recalculate endpoints
+│   ├── dashboard/           # main dashboard page
+│   ├── docs/                # training science reference
+│   ├── equipment/           # placeholder
+│   └── profile/             # HR + Garmin config
+├── lib/
+│   ├── db/                  # Drizzle schema + migrations
+│   ├── auth/                # getCurrentUser (cookie-aware)
+│   ├── parsers/             # .fit and .gpx parsers
+│   ├── sync/                # garmin-download.ts · garmin-recalculate.ts
+│   └── training/            # metrics.ts (CTL/ATL/VO₂max) · critical-speed.ts
+└── components/
+    ├── admin/               # UserManager
+    ├── charts/              # FormChart · Vo2maxChart · WeeklyVolumeChart
+    │                        # CriticalSpeedChart · ActivityCalendar
+    ├── layout/              # Header · ProfileForm · GarminRecalcButton
+    └── ui/                  # shadcn/ui primitives
+```
 
 ## Roadmap
 
-- [x] Project scaffold (Next.js + Drizzle)
-- [x] .fit and .gpx file parsers
-- [x] CTL/ATL/TSB performance manager chart (Banister impulse–response)
-- [x] Contextual training zones with advice (peak / fresh / neutral / optimal / high risk)
+### Released
+
+- [x] `.fit` and `.gpx` file parsers
+- [x] CTL / ATL / TSB performance manager chart (Banister impulse-response model)
+- [x] Training zones with contextual advice (peak / fresh / neutral / fatigued / overreached)
 - [x] Dual training load model (Banister TRIMP + linear hrTSS) with auto-selection
-- [x] VO₂max estimation from submaximal HR data (Swain et al. 1994)
-- [x] Garmin Connect sync
-- [x] Training load heatmap calendar
-- [x] Activity detail page — per-activity stats, pace & HR chart (by distance), lap splits
-- [x] Weather snapshot per activity (Open-Meteo historical archive, fetched at upload/sync time)
-- [ ] Distance distribution histogram — frequency of activities by distance bucket (5 km, 10 km, 21 km, 42 km, etc.)
-- [ ] Cadence distribution histogram — cadence frequency curve per activity and aggregate trend
-- [ ] Pace best-effort curves — best time per canonical distance (1 km, 5 km, 10 km, 21 km, 42 km) across all activities, plotted over time
-- [ ] VO₂max evolution chart — estimated VO₂max over time from submaximal efforts
-- [ ] Activity calendar view — month grid where each day shows activities (distance, pace, HR), clickable to detail page
-- [ ] Parser unit tests (validate .fit and .gpx output)
-- [ ] Shoe tracking — accumulated km, pace trend, and retirement alert per shoe
-- [ ] Performance curve by distance over time
+- [x] VO₂max estimation from submaximal HR (Swain et al. 1994) with 28-day EWMA trend
+- [x] Garmin Connect sync — download raw `.fit` files + recalculate separately
+- [x] Activity calendar (training load heatmap)
+- [x] Activity detail page — pace & HR chart, lap splits, weather snapshot
+- [x] Weekly volume chart with 8-week rolling average
+- [x] Critical Speed model (hyperbolic, Monod & Scherrer 1965) + race time predictions
+- [x] Multi-user support with session switching (`/admin`)
+- [x] Training science documentation page (`/docs`)
+
+### Planned
+
+- [ ] Distance distribution histogram — frequency of activities by distance bucket
+- [ ] Cadence distribution histogram — cadence frequency curve per activity and aggregate
+- [ ] Pace best-effort curves — best time per canonical distance (1 km, 5 km, 10 km…) over time
+- [ ] Shoe tracking — accumulated km, pace trend, retirement alert per shoe
+- [ ] W′ balance per activity — real-time D′ depletion curve from per-second pace data
+- [ ] Parser unit tests
 
 ## Self-hosting
 
-The app uses a local SQLite file (`db/local.db`) — no external database or authentication required. Deploy anywhere Node.js runs (Vercel, Fly.io, VPS).
+The app uses a local SQLite file (`db/local.db`) — no external database or auth required. Deploy anywhere Node.js runs (Vercel, Fly.io, VPS).
 
-For Vercel deploys, SQLite requires a persistent volume or switching to Turso (libSQL).
+> **Vercel note**: SQLite requires a persistent volume or switching to Turso (libSQL) for serverless deployments.
 
 ## License
 
