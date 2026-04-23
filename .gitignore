@@ -43,3 +43,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI
+.gitnexus
+.gemini
+GEMINI.md
+.playwright-mcp

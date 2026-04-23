@@ -95,6 +95,11 @@ export function parseRecords(
   try {
     const raw = JSON.parse(rawDataJson);
     if (!Array.isArray(raw) || raw.length === 0) return [];
+    
+    if (sourceFormat === "strava") {
+      return downsample(raw as NormalizedRecord[], 600);
+    }
+
     const normalized =
       sourceFormat === "gpx"
         ? normalizeGpx(raw as GpxPoint[])

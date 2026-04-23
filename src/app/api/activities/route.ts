@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { activities, activityLaps } from "@/lib/db/schema";
+import { activities, activityLaps, garminRaws, stravaRaws } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/current-user";
 
@@ -10,7 +10,11 @@ export async function DELETE() {
 
   const userId = user.id;
 
-  // Fetch activity IDs first, then delete laps explicitly before activities.
+  // 1. Clear raw sync records (so next sync starts from scratch)
+  db.delete(garminRaws).where(eq(garminRaws.userId, userId)).run();
+  db.delete(stravaRaws).where(eq(stravaRaws.userId, userId)).run();
+
+  // 2. Clear activities and laps
   const userActivityIds = db
     .select({ id: activities.id })
     .from(activities)

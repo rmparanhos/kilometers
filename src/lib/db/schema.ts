@@ -17,6 +17,10 @@ export const users = sqliteTable("users", {
   // Garmin Connect credentials (stored locally for self-hosted use)
   garminEmail: text("garmin_email"),
   garminPassword: text("garmin_password"),
+  // Strava OAuth tokens
+  stravaRefreshToken: text("strava_refresh_token"),
+  stravaAccessToken: text("strava_access_token"),
+  stravaTokenExpiresAt: integer("strava_token_expires_at"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -183,6 +187,30 @@ export const garminRaws = sqliteTable(
 );
 
 // ---------------------------------------------------------------------------
+// Strava raw downloads
+// ---------------------------------------------------------------------------
+
+/**
+ * One row per downloaded Strava activity. Caches the raw JSON response from
+ * the Strava API to allow recalculation without re-fetching.
+ */
+export const stravaRaws = sqliteTable(
+  "strava_raws",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    stravaActivityId: text("strava_activity_id").notNull(),
+    fetchedAt: integer("fetched_at", { mode: "timestamp" }).notNull(),
+    stravaMetaJson: text("strava_meta_json"),
+  },
+  (t) => [unique().on(t.userId, t.stravaActivityId)]
+);
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 export type User = typeof users.$inferSelect;
@@ -195,3 +223,5 @@ export type ActivityLap = typeof activityLaps.$inferSelect;
 export type ActivityLapInsert = typeof activityLaps.$inferInsert;
 export type GarminRaw = typeof garminRaws.$inferSelect;
 export type GarminRawInsert = typeof garminRaws.$inferInsert;
+export type StravaRaw = typeof stravaRaws.$inferSelect;
+export type StravaRawInsert = typeof stravaRaws.$inferInsert;
