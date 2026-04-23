@@ -104,3 +104,19 @@ export function parseRecords(
     return [];
   }
 }
+
+export function parseRecordsFull(
+  rawDataJson: string | null,
+  sourceFormat: string | null
+): NormalizedRecord[] {
+  if (!rawDataJson) return [];
+  try {
+    const raw = JSON.parse(rawDataJson);
+    if (!Array.isArray(raw) || raw.length === 0) return [];
+    return sourceFormat === "gpx"
+      ? normalizeGpx(raw as GpxPoint[])
+      : normalizeFit(raw as FitRecord[]);
+  } catch {
+    return [];
+  }
+}

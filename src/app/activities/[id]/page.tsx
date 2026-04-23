@@ -2,13 +2,15 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { activities, activityLaps } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne, gte, lte, asc } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { Header } from "@/components/layout/Header";
 import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
-import { parseRecords } from "@/lib/parsers/records";
+import { parseRecords, parseRecordsFull } from "@/lib/parsers/records";
+import { interpolateKmSplits } from "@/lib/training/km-splits";
 import type { WeatherSnapshot } from "@/lib/weather";
 import { ActivityChart } from "@/components/charts/ActivityChart";
+import { KmSplitComparisonChart } from "@/components/charts/KmSplitComparisonChart";
 import { Card, CardContent } from "@/components/ui/card";
 
 function weatherEmoji(code: number): string {
@@ -60,6 +62,43 @@ export default async function ActivityDetailPage({ params }: Props) {
     .all();
 
   const records = parseRecords(activity.rawDataJson, activity.sourceFormat);
+
+  // Km-split comparison — find best run of similar distance (±10%)
+  const margin = activity.distanceM * 0.10;
+  const comparables = db
+    .select({
+      id: activities.id,
+      startedAt: activities.startedAt,
+      durationSec: activities.durationSec,
+      rawDataJson: activities.rawDataJson,
+      sourceFormat: activities.sourceFormat,
+    })
+    .from(activities)
+    .where(
+      and(
+        eq(activities.userId, user.id),
+        gte(activities.distanceM, activity.distanceM - margin),
+        lte(activities.distanceM, activity.distanceM + margin),
+        ne(activities.id, activity.id),
+      )
+    )
+    .orderBy(asc(activities.durationSec))
+    .all()
+    .filter((a) => a.rawDataJson != null);
+
+  const isBest = comparables.length > 0 && activity.durationSec <= comparables[0].durationSec;
+  const reference = comparables[0] ?? null;
+
+  const currentSplits = activity.rawDataJson
+    ? interpolateKmSplits(parseRecordsFull(activity.rawDataJson, activity.sourceFormat))
+    : [];
+  const referenceSplits = reference
+    ? interpolateKmSplits(parseRecordsFull(reference.rawDataJson, reference.sourceFormat))
+    : [];
+
+  const refDateStr = reference
+    ? reference.startedAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+    : "";
 
   const weather: WeatherSnapshot | null = activity.weatherJson
     ? (() => {
@@ -205,6 +244,16 @@ export default async function ActivityDetailPage({ params }: Props) {
 
           {/* Pace / HR chart */}
           {records.length > 0 && <ActivityChart records={records} />}
+
+          {/* Km split comparison */}
+          {currentSplits.length > 0 && referenceSplits.length > 0 && (
+            <KmSplitComparisonChart
+              currentSplits={currentSplits}
+              bestSplits={referenceSplits}
+              bestDate={refDateStr}
+              isBest={isBest}
+            />
+          )}
 
           {/* Lap splits */}
           {laps.length > 0 && (
