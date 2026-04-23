@@ -124,6 +124,7 @@ src/
 
 ### Planned
 
+- [ ] **Map view** — interactive route map on the activity detail page using GPS coordinates from `rawDataJson`; color-coded by pace or heart rate zone along the trace
 - [ ] **Strava sync** — OAuth 2.0 integration: connect account, download activities as JSON, recalculate training load independently (same download/recalculate split as Garmin). Requires `STRAVA_CLIENT_ID` + `STRAVA_CLIENT_SECRET` in `.env.local` (get at strava.com/settings/api).
 - [ ] Distance distribution histogram — frequency of activities by distance bucket
 - [ ] Cadence distribution histogram — cadence frequency curve per activity and aggregate
