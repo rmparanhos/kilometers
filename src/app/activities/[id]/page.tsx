@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { activities, activityLaps } from "@/lib/db/schema";
+import { activities, activityLaps, equipment } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { Header } from "@/components/layout/Header";
@@ -52,6 +52,10 @@ export default async function ActivityDetailPage({ params }: Props) {
     .get();
 
   if (!activity) return notFound();
+
+  const gear = activity.equipmentId
+    ? db.select().from(equipment).where(eq(equipment.id, activity.equipmentId)).get()
+    : null;
 
   const laps = db
     .select()
@@ -110,6 +114,13 @@ export default async function ActivityDetailPage({ params }: Props) {
             </div>
             <p className="text-sm text-muted-foreground capitalize">{dateStr}</p>
           </div>
+
+          {gear && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Equipment:</span>
+              <span className="text-sm font-semibold text-slate-700">{gear.name}</span>
+            </div>
+          )}
 
           {/* Primary stats */}
           <Card>

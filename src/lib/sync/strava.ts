@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { users, stravaRaws, activities, activityLaps } from "@/lib/db/schema";
+import { users, stravaRaws, activities, activityLaps, equipment } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { estimateTrainingLoadWithModel } from "@/lib/training/metrics";
 import { fetchWeather } from "@/lib/weather";
@@ -134,6 +134,30 @@ export async function syncStravaActivities(userId: string): Promise<SyncResult> 
         }
       }
 
+      // 3. Handle Equipment (Gear)
+      let equipmentId: string | null = null;
+      if (detailedAct.gear_id && detailedAct.gear) {
+        // Check if we already have this equipment
+        const existingGear = db
+          .select()
+          .from(equipment)
+          .where(and(eq(equipment.userId, userId), eq(equipment.notes, `strava_gear_id:${detailedAct.gear_id}`)))
+          .get();
+
+        if (existingGear) {
+          equipmentId = existingGear.id;
+        } else {
+          // Create new equipment based on Strava gear
+          const [newGear] = db.insert(equipment).values({
+            userId,
+            name: detailedAct.gear.name || "Unknown Strava Gear",
+            type: "shoe", // Assuming runs use shoes primarily
+            notes: `strava_gear_id:${detailedAct.gear_id}`,
+          }).returning().all();
+          equipmentId = newGear.id;
+        }
+      }
+
       // Process and save to activities
       const startedAt = new Date(stravaAct.start_date);
       const { load: trainingLoad, model: loadModel } = estimateTrainingLoadWithModel(
@@ -146,6 +170,7 @@ export async function syncStravaActivities(userId: string): Promise<SyncResult> 
 
       const insertData = {
         userId,
+        equipmentId,
         name: stravaAct.name,
         sport,
         sourceFormat: "strava",
