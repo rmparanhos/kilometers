@@ -18,10 +18,20 @@ import { ActivityCalendar } from "@/components/charts/ActivityCalendar";
 import { CriticalSpeedChart } from "@/components/charts/CriticalSpeedChart";
 import { WeeklyVolumeChart } from "@/components/charts/WeeklyVolumeChart";
 import { Header } from "@/components/layout/Header";
+import {
+  TimeWindowSelector,
+  windowToFromDate,
+  type TimeWindow,
+} from "@/components/layout/TimeWindowSelector";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import type { FormPoint } from "@/lib/training/metrics";
+import { Suspense } from "react";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ window?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) {
     return (
@@ -35,6 +45,14 @@ export default async function DashboardPage() {
       </>
     );
   }
+
+  const { window: windowParam } = await searchParams;
+  const VALID: TimeWindow[] = ["4w", "3m", "6m", "1y", "all"];
+  const currentWindow: TimeWindow =
+    windowParam && (VALID as string[]).includes(windowParam)
+      ? (windowParam as TimeWindow)
+      : "all";
+  const fromDate = windowToFromDate(currentWindow);
 
   const userActivities = db
     .select({
@@ -53,50 +71,78 @@ export default async function DashboardPage() {
 
   const profile = { hrMax: user.hrMax, hrRest: user.hrRest, lthrBpm: user.lthrBpm };
 
+  // CTL/ATL/TSB: always compute from full history (cumulative model requires all data)
   const dailyLoads = fillGaps(userActivities);
-  const series: FormPoint[] = computeFormSeries(dailyLoads);
+  const fullSeries: FormPoint[] = computeFormSeries(dailyLoads);
 
-  const lastPoint = series[series.length - 1];
+  const lastPoint = fullSeries[fullSeries.length - 1];
   const currentCTL = lastPoint?.ctl ?? 0;
   const currentATL = lastPoint?.atl ?? 0;
   const currentTSB = lastPoint?.tsb ?? 0;
   const currentZone = getFormZone(currentTSB);
 
-  const hasData = series.length > 0;
+  // Slice series for display window only
+  const displaySeries = fromDate
+    ? fullSeries.filter((p) => p.date >= fromDate)
+    : fullSeries;
+
+  const hasData = fullSeries.length > 0;
+
+  // Activities in the selected window (for charts that don't need cumulative history)
+  const windowedActivities = fromDate
+    ? userActivities.filter((a) => a.startedAt >= fromDate)
+    : userActivities;
 
   const vo2maxSeries = computeVo2maxSeries(userActivities, profile);
+  const displayVo2max = fromDate
+    ? vo2maxSeries.filter((p) => p.date >= fromDate)
+    : vo2maxSeries;
   const vo2max = vo2maxSeries[vo2maxSeries.length - 1]?.ewmaVo2max ?? null;
-  const weeklyVolume = computeWeeklyVolume(userActivities);
 
-  const csEligible = userActivities.map((a) => ({
+  const weeksMap: Record<TimeWindow, number> = {
+    "4w": 6,
+    "3m": 14,
+    "6m": 26,
+    "1y": 52,
+    "all": 52,
+  };
+  const weeklyVolume = computeWeeklyVolume(userActivities, weeksMap[currentWindow]);
+
+  const csEligible = windowedActivities.map((a) => ({
     durationSec: a.durationSec,
     distanceM: a.distanceM,
     avgPaceMperS: a.avgPaceMperS,
   }));
   const csPareto = extractBestEfforts(csEligible);
   const csModel  = fitCriticalSpeed(csPareto);
-  
 
   return (
     <>
       <Header />
       <main className="min-h-screen bg-gray-50">
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-              Dashboard
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              {hasData
-                ? `${userActivities.length} activit${userActivities.length !== 1 ? "ies" : "y"} recorded`
-                : "No activities yet"}
-            </p>
+          <div className="mb-8 flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+                Dashboard
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                {hasData
+                  ? `${userActivities.length} activit${userActivities.length !== 1 ? "ies" : "y"} recorded`
+                  : "No activities yet"}
+              </p>
+            </div>
+            {hasData && (
+              <Suspense>
+                <TimeWindowSelector current={currentWindow} />
+              </Suspense>
+            )}
           </div>
 
           {hasData ? (
             <div className="space-y-6">
               <FormChart
-                series={series}
+                series={displaySeries}
                 currentZone={currentZone}
                 currentCTL={currentCTL}
                 currentATL={currentATL}
@@ -104,8 +150,8 @@ export default async function DashboardPage() {
                 vo2max={vo2max}
               />
               <WeeklyVolumeChart series={weeklyVolume} />
-              <ActivityCalendar activities={userActivities} />
-              <Vo2maxChart series={vo2maxSeries} />
+              <ActivityCalendar activities={windowedActivities} />
+              <Vo2maxChart series={displayVo2max} />
               <CriticalSpeedChart
                 model={csModel}
                 allEfforts={csEligible.filter(
