@@ -18,11 +18,8 @@ import { ActivityCalendar } from "@/components/charts/ActivityCalendar";
 import { CriticalSpeedChart } from "@/components/charts/CriticalSpeedChart";
 import { WeeklyVolumeChart } from "@/components/charts/WeeklyVolumeChart";
 import { Header } from "@/components/layout/Header";
-import {
-  TimeWindowSelector,
-  windowToFromDate,
-  type TimeWindow,
-} from "@/components/layout/TimeWindowSelector";
+import { TimeWindowSelector } from "@/components/layout/TimeWindowSelector";
+import { windowToFromDate, VALID_WINDOWS, type TimeWindow } from "@/lib/time-window";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import type { FormPoint } from "@/lib/training/metrics";
 import { Suspense } from "react";
@@ -47,9 +44,8 @@ export default async function DashboardPage({
   }
 
   const { window: windowParam } = await searchParams;
-  const VALID: TimeWindow[] = ["4w", "3m", "6m", "1y", "all"];
   const currentWindow: TimeWindow =
-    windowParam && (VALID as string[]).includes(windowParam)
+    windowParam && (VALID_WINDOWS as string[]).includes(windowParam)
       ? (windowParam as TimeWindow)
       : "all";
   const fromDate = windowToFromDate(currentWindow);
