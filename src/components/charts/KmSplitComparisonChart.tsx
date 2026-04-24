@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDuration } from "@/lib/utils";
 import type { KmSplit } from "@/lib/training/km-splits";
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,8 @@ function ChartTooltip({
 interface KmSplitComparisonChartProps {
   currentSplits: KmSplit[];
   bestSplits: KmSplit[];
+  currentDurationSec: number;
+  referenceDurationSec: number;
   bestDate: string;
   isBest: boolean;
 }
@@ -93,6 +96,8 @@ interface KmSplitComparisonChartProps {
 export function KmSplitComparisonChart({
   currentSplits,
   bestSplits,
+  currentDurationSec,
+  referenceDurationSec,
   bestDate,
   isBest,
 }: KmSplitComparisonChartProps) {
@@ -130,15 +135,29 @@ export function KmSplitComparisonChart({
                 : `Reference: ${bestDate}`}
             </p>
           </div>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground shrink-0">
-            <span className="flex items-center gap-1.5">
-              <span className="h-0.5 w-5 bg-indigo-500 inline-block rounded" />
-              This run
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-0.5 w-5 bg-gray-400 inline-block rounded border-dashed" />
-              Reference
-            </span>
+          <div className="text-right shrink-0">
+            {(() => {
+              const delta = currentDurationSec - referenceDurationSec;
+              const abs = Math.abs(delta);
+              const sign = delta > 0 ? "+" : "−";
+              return (
+                <>
+                  <div className="flex items-center justify-end gap-3">
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="h-0.5 w-4 bg-indigo-500 inline-block rounded" />
+                      <span className="font-semibold text-indigo-600 text-sm">{formatDuration(currentDurationSec)}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="h-0.5 w-4 bg-gray-400 inline-block rounded" />
+                      <span className="font-semibold text-gray-500 text-sm">{formatDuration(referenceDurationSec)}</span>
+                    </span>
+                  </div>
+                  <p className={`text-xs font-semibold mt-0.5 ${delta <= 0 ? "text-green-600" : "text-red-500"}`}>
+                    {sign}{formatDuration(abs)} overall
+                  </p>
+                </>
+              );
+            })()}
           </div>
         </div>
 

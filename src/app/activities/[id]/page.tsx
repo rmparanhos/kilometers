@@ -250,6 +250,8 @@ export default async function ActivityDetailPage({ params }: Props) {
             <KmSplitComparisonChart
               currentSplits={currentSplits}
               bestSplits={referenceSplits}
+              currentDurationSec={activity.durationSec}
+              referenceDurationSec={reference!.durationSec}
               bestDate={refDateStr}
               isBest={isBest}
             />
