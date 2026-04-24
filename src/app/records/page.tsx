@@ -11,12 +11,15 @@ import { formatDuration, formatPace } from "@/lib/utils";
 // Canonical distances
 // ---------------------------------------------------------------------------
 
+// Lower bound only: run must cover at least the canonical distance (−2% GPS margin).
+// No upper bound — a marathon also counts as a valid half/10k/5k effort.
 const DISTANCES = [
-  { label: "5 km",      m: 5_000,  tol: 0.05 },
-  { label: "10 km",     m: 10_000, tol: 0.05 },
-  { label: "Half",      m: 21_097, tol: 0.05 },
-  { label: "Marathon",  m: 42_195, tol: 0.05 },
+  { label: "5 km",     m: 5_000  },
+  { label: "10 km",    m: 10_000 },
+  { label: "Half",     m: 21_097 },
+  { label: "Marathon", m: 42_195 },
 ];
+const GPS_MARGIN = 0.02; // 2 % below canonical counts (GPS drift)
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -159,11 +162,11 @@ export default async function RecordsPage() {
         .all()
     : [];
 
-  const buckets = DISTANCES.map(({ label, m, tol }) => ({
+  const buckets = DISTANCES.map(({ label, m }) => ({
     label,
-    runs: allRuns.filter(
-      (a) => a.distanceM >= m * (1 - tol) && a.distanceM <= m * (1 + tol)
-    ),
+    runs: allRuns
+      .filter((a) => a.distanceM >= m * (1 - GPS_MARGIN))
+      .slice(0, 10),
   }));
 
   const hasAny = buckets.some((b) => b.runs.length > 0);
@@ -176,7 +179,7 @@ export default async function RecordsPage() {
           <div className="mb-8">
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Records</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Personal bests per canonical distance (±5% tolerance)
+              Top 10 per distance — any run covering that distance or more counts
             </p>
           </div>
 
