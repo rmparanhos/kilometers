@@ -11,6 +11,7 @@ import { interpolateKmSplits } from "@/lib/training/km-splits";
 import type { WeatherSnapshot } from "@/lib/weather";
 import { ActivityChart } from "@/components/charts/ActivityChart";
 import { KmSplitComparisonChart } from "@/components/charts/KmSplitComparisonChart";
+import RouteMapClient from "@/components/charts/RouteMapClient";
 import { Card, CardContent } from "@/components/ui/card";
 
 function weatherEmoji(code: number): string {
@@ -62,6 +63,10 @@ export default async function ActivityDetailPage({ params }: Props) {
     .all();
 
   const records = parseRecords(activity.rawDataJson, activity.sourceFormat);
+  const fullRecords = activity.rawDataJson
+    ? parseRecordsFull(activity.rawDataJson, activity.sourceFormat)
+    : [];
+  const hasGps = fullRecords.some((r) => r.lat != null && r.lon != null);
 
   // Km-split comparison — find best run of similar distance (±10%)
   const margin = activity.distanceM * 0.10;
@@ -89,9 +94,7 @@ export default async function ActivityDetailPage({ params }: Props) {
   const isBest = comparables.length > 0 && activity.durationSec <= comparables[0].durationSec;
   const reference = comparables[0] ?? null;
 
-  const currentSplits = activity.rawDataJson
-    ? interpolateKmSplits(parseRecordsFull(activity.rawDataJson, activity.sourceFormat))
-    : [];
+  const currentSplits = fullRecords.length > 0 ? interpolateKmSplits(fullRecords) : [];
   const referenceSplits = reference
     ? interpolateKmSplits(parseRecordsFull(reference.rawDataJson, reference.sourceFormat))
     : [];
@@ -241,6 +244,9 @@ export default async function ActivityDetailPage({ params }: Props) {
               </CardContent>
             </Card>
           )}
+
+          {/* Route map */}
+          {hasGps && <RouteMapClient records={fullRecords} />}
 
           {/* Pace / HR chart */}
           {records.length > 0 && <ActivityChart records={records} />}

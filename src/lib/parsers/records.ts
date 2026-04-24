@@ -8,6 +8,8 @@ export interface NormalizedRecord {
   speedMperS?: number;
   cadenceRpm?: number;
   elevationM?: number;
+  lat?: number;
+  lon?: number;
 }
 
 type FitRecord = Record<string, unknown>;
@@ -25,6 +27,12 @@ function normalizeFit(records: FitRecord[]): NormalizedRecord[] {
       (r["enhanced_speed"] as number | undefined) ??
       (r["speed"] as number | undefined);
     const cadence = r["cadence"] as number | undefined;
+    // fit-file-parser converts semicircles → degrees internally.
+    // Records without a GPS fix carry a sentinel value outside valid ranges.
+    const rawLat = r["position_lat"] as number | undefined;
+    const rawLon = r["position_long"] as number | undefined;
+    const lat = rawLat != null && Math.abs(rawLat) <= 90 ? rawLat : undefined;
+    const lon = rawLon != null && Math.abs(rawLon) <= 180 ? rawLon : undefined;
     return {
       distanceM: (r["distance"] as number | undefined) ?? 0,
       timeSec: (ts - firstTs) / 1000,
@@ -34,6 +42,8 @@ function normalizeFit(records: FitRecord[]): NormalizedRecord[] {
       elevationM:
         (r["enhanced_altitude"] as number | undefined) ??
         (r["altitude"] as number | undefined),
+      lat,
+      lon,
     };
   });
 }
@@ -71,6 +81,8 @@ function normalizeGpx(points: GpxPoint[]): NormalizedRecord[] {
       hr: ext?.["gpxtpx:hr"],
       cadenceRpm: ext?.["gpxtpx:cad"],
       elevationM: p.ele,
+      lat: p["@_lat"] ?? undefined,
+      lon: p["@_lon"] ?? undefined,
     };
   });
 }
