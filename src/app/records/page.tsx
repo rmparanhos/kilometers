@@ -157,7 +157,7 @@ export default async function RecordsPage() {
           avgPaceMperS: activities.avgPaceMperS,
         })
         .from(activities)
-        .where(eq(activities.userId, user.id))
+        .where(and(eq(activities.userId, user.id), eq(activities.sport, "running")))
         .orderBy(asc(activities.durationSec))
         .all()
     : [];
