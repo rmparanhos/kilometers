@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { activities } from "@/lib/db/schema";
-import { eq, and, gte, lte, asc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,15 +11,28 @@ import { formatDuration, formatPace } from "@/lib/utils";
 // Canonical distances
 // ---------------------------------------------------------------------------
 
-// Lower bound only: run must cover at least the canonical distance (−2% GPS margin).
-// No upper bound — a marathon also counts as a valid half/10k/5k effort.
 const DISTANCES = [
   { label: "5 km",     m: 5_000  },
   { label: "10 km",    m: 10_000 },
   { label: "Half",     m: 21_097 },
   { label: "Marathon", m: 42_195 },
 ];
-const GPS_MARGIN = 0.02; // 2 % below canonical counts (GPS drift)
+
+// 2% below canonical counts (GPS drift on exact-distance races)
+const GPS_MARGIN = 0.02;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface RunEntry {
+  id: string;
+  startedAt: Date;
+  distanceM: number;
+  effectiveSec: number;   // durationSec scaled to canonical distance
+  effectivePaceMperS: number;
+  isTrimmed: boolean;     // true when distanceM > canonical * 1.02
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -36,17 +49,10 @@ function formatDelta(deltaSec: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Distance block
+// Card component
 // ---------------------------------------------------------------------------
 
-interface Run {
-  id: string;
-  startedAt: Date;
-  durationSec: number;
-  avgPaceMperS: number | null;
-}
-
-function DistanceCard({ label, runs }: { label: string; runs: Run[] }) {
+function DistanceCard({ label, runs }: { label: string; runs: RunEntry[] }) {
   if (runs.length === 0) {
     return (
       <Card>
@@ -73,10 +79,11 @@ function DistanceCard({ label, runs }: { label: string; runs: Run[] }) {
           </div>
           <Link href={`/activities/${pr.id}`} className="text-right group">
             <p className="text-2xl font-bold text-green-600 group-hover:text-green-500 transition-colors tabular-nums">
-              {formatDuration(pr.durationSec)}
+              {pr.isTrimmed && <span className="text-base mr-0.5 text-green-500/70">~</span>}
+              {formatDuration(pr.effectiveSec)}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {formatPace(pr.avgPaceMperS)} ·{" "}
+              {formatPace(pr.effectivePaceMperS)} ·{" "}
               {pr.startedAt.toLocaleDateString("pt-BR", {
                 day: "2-digit",
                 month: "short",
@@ -100,12 +107,12 @@ function DistanceCard({ label, runs }: { label: string; runs: Run[] }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {runs.map((run, i) => {
-                const delta = run.durationSec - pr.durationSec;
+                const delta = run.effectiveSec - pr.effectiveSec;
                 const isPR = i === 0;
                 return (
                   <tr key={run.id} className={isPR ? "bg-green-50/60" : ""}>
                     <td className="py-2 pr-3 text-xs text-muted-foreground">{i + 1}</td>
-                    <td className="py-2 pr-4 tabular-nums text-muted-foreground">
+                    <td className="py-2 pr-4 text-muted-foreground">
                       <Link href={`/activities/${run.id}`} className="hover:text-foreground transition-colors">
                         {run.startedAt.toLocaleDateString("pt-BR", {
                           day: "2-digit",
@@ -115,10 +122,13 @@ function DistanceCard({ label, runs }: { label: string; runs: Run[] }) {
                       </Link>
                     </td>
                     <td className="py-2 pr-4 tabular-nums font-medium">
-                      {formatDuration(run.durationSec)}
+                      {run.isTrimmed && (
+                        <span className="text-xs text-muted-foreground mr-0.5" title="Estimated for this distance">~</span>
+                      )}
+                      {formatDuration(run.effectiveSec)}
                     </td>
                     <td className="py-2 pr-4 tabular-nums text-muted-foreground">
-                      {formatPace(run.avgPaceMperS)}
+                      {formatPace(run.effectivePaceMperS)}
                     </td>
                     <td className="py-2 tabular-nums">
                       {isPR ? (
@@ -135,6 +145,12 @@ function DistanceCard({ label, runs }: { label: string; runs: Run[] }) {
             </tbody>
           </table>
         </div>
+
+        {runs.some((r) => r.isTrimmed) && (
+          <p className="text-xs text-muted-foreground mt-3">
+            ~ estimated time — run was longer than {label}, pace projected to this distance
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -158,16 +174,28 @@ export default async function RecordsPage() {
         })
         .from(activities)
         .where(and(eq(activities.userId, user.id), eq(activities.sport, "running")))
-        .orderBy(asc(activities.durationSec))
         .all()
     : [];
 
-  const buckets = DISTANCES.map(({ label, m }) => ({
-    label,
-    runs: allRuns
-      .filter((a) => a.distanceM >= m * (1 - GPS_MARGIN))
-      .slice(0, 10),
-  }));
+  const buckets = DISTANCES.map(({ label, m }) => {
+    const runs: RunEntry[] = allRuns
+      .filter((a) => a.distanceM >= m * (1 - GPS_MARGIN) && a.avgPaceMperS)
+      .map((a) => {
+        const effectiveSec = Math.round(a.durationSec * (m / a.distanceM));
+        return {
+          id: a.id,
+          startedAt: a.startedAt,
+          distanceM: a.distanceM,
+          effectiveSec,
+          effectivePaceMperS: m / effectiveSec,
+          isTrimmed: a.distanceM > m * 1.02,
+        };
+      })
+      .sort((a, b) => a.effectiveSec - b.effectiveSec)
+      .slice(0, 10);
+
+    return { label, runs };
+  });
 
   const hasAny = buckets.some((b) => b.runs.length > 0);
 
@@ -179,7 +207,7 @@ export default async function RecordsPage() {
           <div className="mb-8">
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Records</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Top 10 per distance — any run covering that distance or more counts
+              Top 10 per distance · longer runs are projected to the canonical distance at average pace
             </p>
           </div>
 
