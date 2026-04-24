@@ -107,31 +107,13 @@ src/
 
 ## Roadmap
 
-### Released
+Full plan lives in [docs/roadmap/](docs/roadmap/README.md). Summary:
 
-- [x] `.fit` and `.gpx` file parsers
-- [x] CTL / ATL / TSB performance manager chart (Banister impulse-response model)
-- [x] Training zones with contextual advice (peak / fresh / neutral / fatigued / overreached)
-- [x] Dual training load model (Banister TRIMP + linear hrTSS) with auto-selection
-- [x] VO₂max estimation from submaximal HR (Swain et al. 1994) with 28-day EWMA trend
-- [x] Garmin Connect sync — download raw `.fit` files + recalculate separately
-- [x] Activity calendar (training load heatmap)
-- [x] Activity detail page — pace & HR chart, lap splits, weather snapshot
-- [x] Weekly volume chart with 8-week rolling average
-- [x] Critical Speed model (hyperbolic, Monod & Scherrer 1965) + race time predictions
-- [x] Multi-user support with session switching (`/admin`)
-- [x] Training science documentation page (`/docs`)
+**Shipped** — parsers (`.fit`/`.gpx`), CTL/ATL/TSB, Banister + hrTSS + duration fallback, VO₂max, Critical Speed, weekly volume, activity calendar, activity detail page, Garmin sync, multi-user, `/docs`.
 
-### Planned
+**In Progress (v0.4 — Activity Detail)** — km split comparison vs best run (shipped on branch), interactive route map.
 
-- [ ] **Map view** — interactive route map on the activity detail page using GPS coordinates from `rawDataJson`; color-coded by pace or heart rate zone along the trace
-- [ ] **Strava sync** — OAuth 2.0 integration: connect account, download activities as JSON, recalculate training load independently (same download/recalculate split as Garmin). Requires `STRAVA_CLIENT_ID` + `STRAVA_CLIENT_SECRET` in `.env.local` (get at strava.com/settings/api).
-- [ ] Distance distribution histogram — frequency of activities by distance bucket
-- [ ] Cadence distribution histogram — cadence frequency curve per activity and aggregate
-- [ ] Pace best-effort curves — best time per canonical distance (1 km, 5 km, 10 km…) over time
-- [ ] Shoe tracking — accumulated km, pace trend, retirement alert per shoe
-- [ ] W′ balance per activity — real-time D′ depletion curve from per-second pace data
-- [ ] Parser unit tests
+**Backlog** — Strava sync, distance/cadence histograms, pace best-effort curves, shoe tracking, W′ balance, parser tests.
 
 ## Self-hosting
 
