@@ -35,16 +35,16 @@ export async function Header() {
             Equipment
           </Link>
           <Link
-            href="/profile"
-            className="text-sm text-slate-300 hover:text-white transition-colors"
-          >
-            Profile
-          </Link>
-          <Link
             href="/docs"
             className="text-sm text-slate-300 hover:text-white transition-colors"
           >
             Docs
+          </Link>
+          <Link
+            href="/profile"
+            className="text-sm text-slate-300 hover:text-white transition-colors"
+          >
+            Profile
           </Link>
           <Link
             href="/admin"
