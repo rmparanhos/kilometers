@@ -29,6 +29,12 @@ export async function Header() {
             Activities
           </Link>
           <Link
+            href="/records"
+            className="text-sm text-slate-300 hover:text-white transition-colors"
+          >
+            Records
+          </Link>
+          <Link
             href="/equipment"
             className="text-sm text-slate-300 hover:text-white transition-colors"
           >
