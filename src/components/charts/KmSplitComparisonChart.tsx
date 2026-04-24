@@ -3,6 +3,8 @@
 import { useState } from "react";
 import {
   ComposedChart,
+  Bar,
+  Cell,
   Area,
   Line,
   ReferenceLine,
@@ -63,14 +65,8 @@ function SplitTooltip({
   return (
     <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-xs space-y-1">
       <p className="font-medium text-gray-500">km {d.km}</p>
-      <div className="flex items-center gap-1.5">
-        <span className="size-2 rounded-full bg-indigo-500 inline-block" />
-        <span className="text-gray-800">This run: <span className="font-semibold">{formatPace(d.current)}</span></span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <span className="size-2 rounded-full bg-gray-400 inline-block" />
-        <span className="text-gray-500">Reference: <span className="font-medium">{formatPace(d.reference)}</span></span>
-      </div>
+      <p className="text-gray-800">This run: <span className="font-semibold">{formatPace(d.current)}</span></p>
+      <p className="text-gray-500">Reference: <span className="font-medium">{formatPace(d.reference)}</span></p>
       <p className={d.deltaSec <= 0 ? "text-green-600 font-semibold" : "text-red-500 font-semibold"}>
         {formatDelta(d.deltaSec)} this km
       </p>
@@ -166,10 +162,6 @@ export function KmSplitComparisonChart({
     }),
   ];
 
-  const allPaces = splitPoints.flatMap((p) => [p.current, p.reference]);
-  const splitYMin = Math.max(2, Math.min(...allPaces) - 0.3);
-  const splitYMax = Math.max(...allPaces) + 0.3;
-
   const cumAbsMax = Math.max(...cumPoints.map((p) => Math.abs(p.cumDelta)), 10);
   const cumYDomain = [-cumAbsMax * 1.2, cumAbsMax * 1.2] as [number, number];
 
@@ -226,45 +218,32 @@ export function KmSplitComparisonChart({
           ))}
         </div>
 
-        {/* Split view */}
+        {/* Split view — bar chart of delta per km */}
         {view === "split" && (
           <ResponsiveContainer width="100%" height={240}>
             <ComposedChart data={splitPoints} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gapFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.15} />
-                  <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
               <XAxis
                 dataKey="km"
-                type="number"
-                domain={[1, numKms]}
                 tick={{ fontSize: 11, fill: "#9ca3af" }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v) => `${v} km`}
-                ticks={splitPoints.map((p) => p.km)}
               />
               <YAxis
-                domain={[splitYMin, splitYMax]}
-                reversed
                 tick={{ fontSize: 11, fill: "#9ca3af" }}
                 tickLine={false}
                 axisLine={false}
-                width={40}
-                tickFormatter={formatPace}
+                width={44}
+                tickFormatter={formatDelta}
               />
               <Tooltip content={<SplitTooltip />} />
-              <Area type="monotone" dataKey="paceMax" stroke="none" fill="url(#gapFill)"
-                isAnimationActive={false} legendType="none" dot={false} activeDot={false} />
-              <Area type="monotone" dataKey="paceMin" stroke="none" fill="white"
-                isAnimationActive={false} legendType="none" dot={false} activeDot={false} />
-              <Line type="monotone" dataKey="reference" stroke="#9ca3af" strokeWidth={1.5}
-                strokeDasharray="5 4" dot={false} isAnimationActive={false} legendType="none" />
-              <Line type="monotone" dataKey="current" stroke="#6366f1" strokeWidth={2}
-                dot={{ r: 3, fill: "#6366f1", strokeWidth: 0 }} isAnimationActive={false} legendType="none" />
+              <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1.5} />
+              <Bar dataKey="deltaSec" maxBarSize={32} radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                {splitPoints.map((p) => (
+                  <Cell key={p.km} fill={p.deltaSec <= 0 ? "#16a34a" : "#ef4444"} opacity={0.8} />
+                ))}
+              </Bar>
             </ComposedChart>
           </ResponsiveContainer>
         )}
@@ -311,7 +290,7 @@ export function KmSplitComparisonChart({
 
         <p className="text-xs text-gray-400 mt-2">
           {view === "split"
-            ? "Pace per km · Y axis reversed (faster = higher) · Shaded area shows the gap"
+            ? "Seconds per km vs reference · green = faster · red = slower"
             : "Cumulative time gap · line above zero = behind reference · below zero = ahead"}
         </p>
       </CardContent>
