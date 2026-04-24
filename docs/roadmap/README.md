@@ -9,7 +9,8 @@ Living plan for Project Kilometer. The short list in the top-level [README](../.
 | [v0.1 — Foundation](milestones/v0.1-foundation.md) | Parsers, upload, dashboard scaffolding | Shipped | — |
 | [v0.2 — Training Load](milestones/v0.2-training-load.md) | CTL/ATL/TSB, Banister TRIMP, hrTSS | Shipped | — |
 | [v0.3 — Insights & Docs](milestones/v0.3-insights.md) | VO₂max, Critical Speed, `/docs`, multi-user, weekly volume | Shipped | — |
-| [v0.4 — Activity Detail](milestones/v0.4-activity-detail.md) | Km split comparison, interactive map | In Progress | — |
+| [v0.4 — Activity Detail](milestones/v0.4-activity-detail.md) | Km split comparison, interactive map | Shipped | — |
+| [v0.5 — Distributions](milestones/v0.5-distributions.md) | Distance + cadence histograms, time-window selector | In Progress | — |
 
 ## Backlog
 
@@ -18,8 +19,6 @@ Unscheduled features, one file each. They graduate to a milestone when picked up
 | Feature | Notes |
 |---|---|
 | [Strava sync](backlog/strava-sync.md) | OAuth 2.0, mirrors Garmin download/recalc split |
-| [Distance distribution histogram](backlog/distance-histogram.md) | Frequency of activities by distance bucket |
-| [Cadence distribution histogram](backlog/cadence-histogram.md) | Per-activity + aggregate cadence curve |
 | [Pace best-effort curves](backlog/pace-best-efforts.md) | Best time per canonical distance over time |
 | [Shoe tracking](backlog/shoe-tracking.md) | Accumulated km, pace trend, retirement alert |
 | [W′ balance per activity](backlog/w-prime-balance.md) | Real-time D′ depletion from per-second pace |

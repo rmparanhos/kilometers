@@ -12,6 +12,8 @@ import type { WeatherSnapshot } from "@/lib/weather";
 import { ActivityChart } from "@/components/charts/ActivityChart";
 import { KmSplitComparisonChart } from "@/components/charts/KmSplitComparisonChart";
 import RouteMapClient from "@/components/charts/RouteMapClient";
+import { Histogram } from "@/components/charts/Histogram";
+import { bucketCadences } from "@/lib/training/histograms";
 import { Card, CardContent } from "@/components/ui/card";
 
 function weatherEmoji(code: number): string {
@@ -67,6 +69,14 @@ export default async function ActivityDetailPage({ params }: Props) {
     ? parseRecordsFull(activity.rawDataJson, activity.sourceFormat)
     : [];
   const hasGps = fullRecords.some((r) => r.lat != null && r.lon != null);
+
+  const cadenceValues = fullRecords
+    .map((r) => r.cadenceRpm)
+    .filter((c): c is number => c != null && c > 0);
+  const cadenceCoverage =
+    fullRecords.length > 0 ? cadenceValues.length / fullRecords.length : 0;
+  const cadenceBuckets =
+    cadenceCoverage >= 0.6 ? bucketCadences(cadenceValues) : [];
 
   // Km-split comparison — find best run of similar distance (±10%)
   const margin = activity.distanceM * 0.10;
@@ -258,6 +268,19 @@ export default async function ActivityDetailPage({ params }: Props) {
               bestSplits={referenceSplits}
               bestDate={refDateStr}
               isBest={isBest}
+            />
+          )}
+
+          {/* Per-activity cadence distribution */}
+          {cadenceBuckets.length > 0 && (
+            <Histogram
+              title="Cadence distribution"
+              subtitle="Instantaneous cadence during the run · 2 spm bins"
+              data={cadenceBuckets}
+              color="#6366f1"
+              referenceValue={180}
+              referenceLabel="180 spm"
+              valueLabel="samples"
             />
           )}
 

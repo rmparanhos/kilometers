@@ -12,16 +12,30 @@ import {
   extractBestEfforts,
   fitCriticalSpeed,
 } from "@/lib/training/critical-speed";
+import {
+  bucketDistances,
+  bucketCadences,
+  filterByWindow,
+  parseTimeWindow,
+} from "@/lib/training/histograms";
 import { FormChart } from "@/components/charts/FormChart";
 import { Vo2maxChart } from "@/components/charts/Vo2maxChart";
 import { ActivityCalendar } from "@/components/charts/ActivityCalendar";
 import { CriticalSpeedChart } from "@/components/charts/CriticalSpeedChart";
 import { WeeklyVolumeChart } from "@/components/charts/WeeklyVolumeChart";
+import { Histogram } from "@/components/charts/Histogram";
+import { WindowSelector } from "@/components/charts/WindowSelector";
 import { Header } from "@/components/layout/Header";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import type { FormPoint } from "@/lib/training/metrics";
 
-export default async function DashboardPage() {
+interface Props {
+  searchParams: Promise<{ window?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: Props) {
+  const { window: windowParam } = await searchParams;
+  const timeWindow = parseTimeWindow(windowParam);
   const user = await getCurrentUser();
   if (!user) {
     return (
@@ -45,6 +59,7 @@ export default async function DashboardPage() {
       durationSec: activities.durationSec,
       avgPaceMperS: activities.avgPaceMperS,
       avgHeartRateBpm: activities.avgHeartRateBpm,
+      avgCadenceRpm: activities.avgCadenceRpm,
     })
     .from(activities)
     .where(eq(activities.userId, user.id))
@@ -75,7 +90,14 @@ export default async function DashboardPage() {
   }));
   const csPareto = extractBestEfforts(csEligible);
   const csModel  = fitCriticalSpeed(csPareto);
-  
+
+  const windowed = filterByWindow(userActivities, timeWindow);
+  const distanceBuckets = bucketDistances(windowed.map((a) => a.distanceM));
+  const validCadences = windowed
+    .map((a) => a.avgCadenceRpm)
+    .filter((c): c is number => c != null);
+  const cadenceBuckets =
+    validCadences.length >= 2 ? bucketCadences(validCadences) : [];
 
   return (
     <>
@@ -113,6 +135,39 @@ export default async function DashboardPage() {
                 )}
                 keyEfforts={csPareto}
               />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                      Distributions
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      How your training is spread across distance and cadence
+                    </p>
+                  </div>
+                  <WindowSelector current={timeWindow} />
+                </div>
+
+                <Histogram
+                  title="Distance"
+                  subtitle={`Activities by distance bucket · ${windowed.length} total`}
+                  data={distanceBuckets}
+                  color="#16a34a"
+                />
+
+                {cadenceBuckets.length > 0 && (
+                  <Histogram
+                    title="Cadence"
+                    subtitle={`Avg cadence per activity · ${validCadences.length} with cadence data`}
+                    data={cadenceBuckets}
+                    color="#6366f1"
+                    referenceValue={180}
+                    referenceLabel="180 spm"
+                    valueLabel="activities"
+                  />
+                )}
+              </div>
             </div>
           ) : (
             <EmptyState />
