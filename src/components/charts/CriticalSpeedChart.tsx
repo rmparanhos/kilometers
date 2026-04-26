@@ -109,7 +109,6 @@ export function CriticalSpeedChart({
 
   // Convert efforts to chart points { t (min), pace (min/km), d (m) }
   const keySet = new Set(keyEfforts.map((e) => `${e.durationSec}|${e.distanceM}`));
-
   const allPoints = allEfforts.map((e) => ({
     t: e.durationSec / 60,
     pace: paceMinKm(e.distanceM / e.durationSec),

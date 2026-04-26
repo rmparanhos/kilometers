@@ -60,6 +60,7 @@ export default async function DashboardPage({
       durationSec: activities.durationSec,
       avgPaceMperS: activities.avgPaceMperS,
       avgHeartRateBpm: activities.avgHeartRateBpm,
+      sport: activities.sport,
     })
     .from(activities)
     .where(eq(activities.userId, user.id))
@@ -149,7 +150,7 @@ export default async function DashboardPage({
   // allEfforts for the chart dots: all valid runs in the eligible window
   const allChartEfforts = windowedActivities.filter(
     (a) => a.distanceM > 0 && a.durationSec >= 180 && a.durationSec <= 7200
-  );
+  ).filter((a) => a.sport == 'running');
 
   return (
     <>
