@@ -12,6 +12,7 @@ import {
   extractBestEfforts,
   fitCriticalSpeed,
 } from "@/lib/training/critical-speed";
+import { parseRecordsFull } from "@/lib/parsers/records";
 import { FormChart } from "@/components/charts/FormChart";
 import { Vo2maxChart } from "@/components/charts/Vo2maxChart";
 import { ActivityCalendar } from "@/components/charts/ActivityCalendar";
@@ -104,13 +105,51 @@ export default async function DashboardPage({
   };
   const weeklyVolume = computeWeeklyVolume(userActivities, weeksMap[currentWindow]);
 
-  const csEligible = windowedActivities.map((a) => ({
-    durationSec: a.durationSec,
-    distanceM: a.distanceM,
-    avgPaceMperS: a.avgPaceMperS,
-  }));
-  const csPareto = extractBestEfforts(csEligible);
-  const csModel  = fitCriticalSpeed(csPareto);
+  // CS model — fast path: use only summary data (no rawDataJson needed)
+  const csShortActivities = windowedActivities
+    .filter((a) => a.distanceM > 0 && a.durationSec >= 180 && a.durationSec < 3000)
+    .map((a) => ({ durationSec: a.durationSec, distanceM: a.distanceM }));
+
+  let csPareto = extractBestEfforts(csShortActivities);
+  let csModel  = fitCriticalSpeed(csPareto);
+
+  // Slow path: if model failed and long runs exist, load their trackpoints so
+  // sub-efforts can populate the duration bins (e.g. recreational runners doing 10km+).
+  if (csModel === null) {
+    const hasLongRuns = windowedActivities.some(
+      (a) => a.durationSec >= 3000 && a.durationSec <= 7200 && a.distanceM > 0
+    );
+    if (hasLongRuns) {
+      const longRunData = db
+        .select({
+          durationSec: activities.durationSec,
+          distanceM: activities.distanceM,
+          rawDataJson: activities.rawDataJson,
+          sourceFormat: activities.sourceFormat,
+        })
+        .from(activities)
+        .where(eq(activities.userId, user.id))
+        .all()
+        .filter((a) => a.durationSec >= 3000 && a.durationSec <= 7200 && a.distanceM > 0);
+
+      const csAllActivities = [
+        ...csShortActivities,
+        ...longRunData.map((a) => ({
+          durationSec: a.durationSec,
+          distanceM: a.distanceM,
+          records: parseRecordsFull(a.rawDataJson, a.sourceFormat),
+        })),
+      ];
+
+      csPareto = extractBestEfforts(csAllActivities);
+      csModel  = fitCriticalSpeed(csPareto);
+    }
+  }
+
+  // allEfforts for the chart dots: all valid runs in the eligible window
+  const allChartEfforts = windowedActivities.filter(
+    (a) => a.distanceM > 0 && a.durationSec >= 180 && a.durationSec <= 7200
+  );
 
   return (
     <>
@@ -150,9 +189,7 @@ export default async function DashboardPage({
               <Vo2maxChart series={displayVo2max} />
               <CriticalSpeedChart
                 model={csModel}
-                allEfforts={csEligible.filter(
-                  (a) => a.durationSec >= 180 && a.durationSec <= 3000 && a.distanceM > 0 && a.avgPaceMperS != null
-                )}
+                allEfforts={allChartEfforts}
                 keyEfforts={csPareto}
               />
             </div>

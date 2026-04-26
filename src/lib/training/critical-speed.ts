@@ -21,7 +21,15 @@
  *   front of recorded activities: the subset of efforts where no other run
  *   covered MORE distance in LESS time. These represent near-maximal pacing
  *   at each duration and closely approximate time-trial performance.
+ *
+ *   For runners whose activities are all longer than 50 min (e.g. recreational
+ *   runners doing 10km+), we fall back to sub-effort extraction: a sliding-
+ *   window search over the stored GPS/FIT trackpoints finds the best N-second
+ *   segment within each bin. This lets a single long run contribute a virtual
+ *   best effort at each of the standard duration targets.
  */
+
+import type { NormalizedRecord } from "@/lib/parsers/records";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,13 +76,12 @@ function ols(pts: { t: number; d: number }[]): { slope: number; intercept: numbe
 }
 
 // ---------------------------------------------------------------------------
-// Pareto front extraction
+// Duration bins
 // ---------------------------------------------------------------------------
 
 /**
  * Duration bins (seconds) used to sample one representative effort per range.
  * Log-spaced across 3–50 min to capture the full shape of the speed-duration curve.
- * Exporting allows the chart to show which bin each effort belongs to.
  */
 export const DURATION_BINS: [number, number][] = [
   [180,  420],   // 3–7 min  (fast 1–2 km efforts)
@@ -85,38 +92,127 @@ export const DURATION_BINS: [number, number][] = [
   [2400, 3000],  // 40–50 min (half-marathon effort)
 ];
 
+// ---------------------------------------------------------------------------
+// Sub-effort extraction from trackpoints
+// ---------------------------------------------------------------------------
+
 /**
- * Extracts one best effort per duration bin — the activity with the highest
- * average pace (distanceM / durationSec) within each bin.
+ * Finds the best (highest average speed) contiguous segment of approximately
+ * targetSec duration within the given trackpoints.
  *
- * Using bins instead of the strict Pareto front prevents the common failure
- * where a runner who only records one distance (e.g. 5 km) gets just one
- * Pareto-front point and the regression can't fit.
+ * Uses a binary-search sliding window: for each record r, finds the record l
+ * whose timeSec is closest to records[r].timeSec - targetSec, then accepts
+ * the window if its duration is within ±15% of targetSec.
  *
- * Returns only the bins that have data, sorted by duration ascending.
- * At least 3 populated bins (spanning different duration ranges) are needed
- * for a reliable regression.
+ * Returns null if no qualifying window exists (too few points or activity
+ * shorter than 0.85 × targetSec).
+ */
+export function bestSegmentOfDuration(
+  records: NormalizedRecord[],
+  targetSec: number,
+): CriticalSpeedEffort | null {
+  if (records.length < 2) return null;
+
+  const pts = records
+    .filter((r) => r.distanceM != null && r.timeSec != null)
+    .sort((a, b) => a.timeSec - b.timeSec);
+
+  if (pts.length < 2) return null;
+
+  const lo = targetSec * 0.85;
+  const hi = targetSec * 1.15;
+  let bestDist = 0;
+
+  for (let r = 1; r < pts.length; r++) {
+    const targetStart = pts[r].timeSec - targetSec;
+
+    // Binary search for the index whose timeSec is closest to targetStart
+    let left = 0;
+    let right = r - 1;
+    while (left < right) {
+      const mid = (left + right + 1) >> 1;
+      if (pts[mid].timeSec <= targetStart) left = mid;
+      else right = mid - 1;
+    }
+
+    // Check left and left+1 to find the closest match
+    for (const l of [left, left + 1]) {
+      if (l >= r) continue;
+      const dur = pts[r].timeSec - pts[l].timeSec;
+      if (dur < lo || dur > hi) continue;
+      const dist = pts[r].distanceM - pts[l].distanceM;
+      if (dist > bestDist) bestDist = dist;
+    }
+  }
+
+  return bestDist > 0 ? { durationSec: targetSec, distanceM: bestDist } : null;
+}
+
+// ---------------------------------------------------------------------------
+// Pareto front extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Extracts one best effort per duration bin.
+ *
+ * For each bin [lo, hi]:
+ *   1. Considers all short activities (durationSec ∈ [lo, hi]) by full-run avg speed.
+ *   2. Considers sub-efforts extracted from long activities (durationSec > 3000) whose
+ *      trackpoints are provided via the `records` field — best segment of (lo+hi)/2 sec.
+ *   3. Returns the faster candidate.
+ *
+ * This lets a 70-min recreational run contribute virtual best efforts at every
+ * standard duration target, while a fast runner's hard 10km still beats the
+ * easy long run's sub-efforts because it has higher average speed.
+ *
+ * Returns only populated bins, sorted by duration ascending.
+ * fitCriticalSpeed requires at least 3 points.
  */
 export function extractBestEfforts(
-  activities: { durationSec: number; distanceM: number; avgPaceMperS: number | null }[]
+  activities: {
+    durationSec: number;
+    distanceM: number;
+    avgPaceMperS?: number | null;
+    records?: NormalizedRecord[];
+  }[]
 ): CriticalSpeedEffort[] {
   const eligible = activities.filter(
-    (a) =>
-      a.durationSec >= 180 &&
-      a.durationSec <= 3000 &&
-      a.distanceM > 0 &&
-      a.avgPaceMperS != null &&
-      a.avgPaceMperS > 0
+    (a) => a.distanceM > 0 && a.durationSec >= 180 && a.durationSec <= 7200
+  );
+
+  const shortActivities = eligible.filter((a) => a.durationSec < 3000);
+  const longWithRecords = eligible.filter(
+    (a) => a.durationSec >= 3000 && a.records != null && a.records.length >= 2
   );
 
   const best: CriticalSpeedEffort[] = [];
+
   for (const [lo, hi] of DURATION_BINS) {
-    const inBin = eligible.filter((a) => a.durationSec >= lo && a.durationSec < hi);
-    if (inBin.length === 0) continue;
-    const fastest = inBin.reduce((b, a) =>
-      a.distanceM / a.durationSec > b.distanceM / b.durationSec ? a : b
-    );
-    best.push({ durationSec: fastest.durationSec, distanceM: fastest.distanceM });
+    const targetSec = (lo + hi) / 2;
+
+    // Best full-run effort in this bin
+    const inBin = shortActivities.filter((a) => a.durationSec >= lo && a.durationSec < hi);
+    const bestShort = inBin.length > 0
+      ? inBin.reduce((b, a) => a.distanceM / a.durationSec > b.distanceM / b.durationSec ? a : b)
+      : null;
+
+    // Best sub-effort at targetSec from any long activity
+    let bestLong: CriticalSpeedEffort | null = null;
+    for (const a of longWithRecords) {
+      const seg = bestSegmentOfDuration(a.records!, targetSec);
+      if (seg && (bestLong === null || seg.distanceM / seg.durationSec > bestLong.distanceM / bestLong.durationSec)) {
+        bestLong = seg;
+      }
+    }
+
+    // Pick the faster of the two candidates
+    const winner = [bestShort, bestLong]
+      .filter((c): c is CriticalSpeedEffort => c !== null)
+      .reduce<CriticalSpeedEffort | null>((b, a) =>
+        b === null || a.distanceM / a.durationSec > b.distanceM / b.durationSec ? a : b
+      , null);
+
+    if (winner !== null) best.push(winner);
   }
 
   return best.sort((a, b) => a.durationSec - b.durationSec);
@@ -127,11 +223,11 @@ export function extractBestEfforts(
 // ---------------------------------------------------------------------------
 
 /**
- * Fits the two-parameter CS model via OLS on the Pareto-front efforts.
+ * Fits the two-parameter CS model via OLS on the best-effort points.
  * Returns null when there are too few points or physiological bounds are violated.
  *
- * Sanity bounds (trained runners):
- *   CS:    2.5 – 6.5 m/s  (≈ 2:34 – 6:40 /km)
+ * Sanity bounds (all ability levels):
+ *   CS:    1.5 – 6.5 m/s  (≈ 2:34 – 11:06 /km)
  *   D':    50  – 600 m
  *   R²:    ≥ 0.85 (below this the data are too noisy to trust)
  *   n:     ≥ 3 points
@@ -145,9 +241,9 @@ export function fitCriticalSpeed(efforts: CriticalSpeedEffort[]): CriticalSpeedM
 
   const { slope: cs, intercept: dPrime, r2 } = fit;
 
-  if (cs < 2.5 || cs > 6.5)   return null;
-  if (dPrime < 50 || dPrime > 600) return null;
-  if (r2 < 0.85)               return null;
+  if (cs < 1.5 || cs > 6.5)        return null;
+  if (dPrime < 50 || dPrime > 600)  return null;
+  if (r2 < 0.85)                    return null;
 
   return {
     cs:      Math.round(cs * 1000) / 1000,

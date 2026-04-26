@@ -3,7 +3,6 @@
 import {
   ComposedChart,
   Scatter,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -44,10 +43,11 @@ function ChartTooltip({
   payload,
 }: {
   active?: boolean;
-  payload?: { payload: { t: number; pace: number; d?: number } }[];
+  payload?: { payload: { t: number; pace: number; d?: number; isCurve?: boolean } }[];
 }) {
   if (!active || !payload?.length) return null;
-  const { t, pace, d } = payload[0].payload;
+  const { t, pace, d, isCurve } = payload[0].payload;
+  if (isCurve) return null;
   return (
     <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-xs space-y-0.5">
       <p className="font-medium text-gray-500">{Math.round(t)} min</p>
@@ -120,15 +120,21 @@ export function CriticalSpeedChart({
   const nonKeyPoints = allPoints.filter((p) => !p.isKey);
   const keyPoints    = allPoints.filter((p) =>  p.isKey);
 
-  const curvePoints = model ? hyperbolicCurve(model, 180, 3000, 80) : [];
   const csPaceMinKm = model ? paceMinKm(model.cs) : null;
 
-  // Y-axis domain: cover all visible points with padding
+  // Y-axis domain: cover all visible points with padding, always include CS line
   const allPaces = [...allPoints.map((p) => p.pace), ...(csPaceMinKm ? [csPaceMinKm] : [])];
   const paceMin = allPaces.length ? Math.max(2, Math.min(...allPaces) - 0.5) : 3;
-  const paceMax = paceMin + 2
+  const paceMax = Math.max(paceMin + 2, csPaceMinKm != null ? csPaceMinKm + 0.3 : 0);
 
-  const xDomain = [3, 51] as [number, number];
+  // X-axis: extend to 90 min when efforts go beyond the standard 50 min window
+  const maxEffortMin = allPoints.length ? Math.max(...allPoints.map((p) => p.t)) : 50;
+  const xMax = maxEffortMin > 52 ? 91 : 51;
+  const xDomain = [3, xMax] as [number, number];
+
+  const curvePoints = model
+    ? hyperbolicCurve(model, 180, xMax * 60, 80).map((p) => ({ ...p, isCurve: true as const }))
+    : [];
 
   return (
     <Card>
@@ -168,7 +174,9 @@ export function CriticalSpeedChart({
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v) => `${v}m`}
-                ticks={[5, 10, 15, 20, 30, 40, 50]}
+                ticks={xMax > 51
+                  ? [5, 10, 15, 20, 30, 40, 50, 60, 75, 90]
+                  : [5, 10, 15, 20, 30, 40, 50]}
               />
               <YAxis
                 type="number"
@@ -199,7 +207,7 @@ export function CriticalSpeedChart({
                 />
               )}
 
-              {/* Fitted hyperbola (rendered as connected scatter = line) */}
+              {/* Fitted hyperbola */}
               {curvePoints.length > 0 && (
                 <Scatter
                   data={curvePoints}
@@ -224,7 +232,7 @@ export function CriticalSpeedChart({
               {/* Key efforts (best per duration bin) used for regression */}
               {keyPoints.length > 0 && (
                 <Scatter
-                  data={keyPoints}
+                  data={keyPoints.filter((p) => p.pace <= paceMax)}
                   fill="#16a34a"
                   r={4}
                   name="Best effort"
@@ -235,7 +243,7 @@ export function CriticalSpeedChart({
         ) : (
           <div className="mt-4 rounded-lg border border-dashed border-gray-200 py-10 text-center">
             <p className="text-sm text-gray-500">
-              No eligible runs yet (3–50 min range).
+              No eligible runs yet (3–50 min range, or longer runs with GPS data).
             </p>
             <p className="text-xs text-gray-400 mt-1">
               The model needs at least 3 hard efforts at different durations to fit the curve.
@@ -246,7 +254,7 @@ export function CriticalSpeedChart({
         {/* Model quality / guidance note */}
         {model ? (
           <p className="text-xs text-gray-400 mt-3">
-            Green dots = fastest run per duration range (used for fit). Gray = other eligible runs.
+            Green dots = fastest effort per duration range (used for fit). Gray = other eligible runs.
             {model.r2 < 0.92 && (
               <span className="text-amber-500 ml-1">
                 R² {model.r2.toFixed(2)} — add efforts at more varied durations for a sharper model.
@@ -255,8 +263,8 @@ export function CriticalSpeedChart({
           </p>
         ) : hasEnoughData ? (
           <p className="text-xs text-amber-500 mt-3">
-            Runs found, but they cluster in too few duration ranges to fit the curve.
-            The model needs fastest efforts spread across at least 3 of these windows:
+            Runs found, but not enough variation across duration ranges to fit the curve.
+            The model needs best efforts spread across at least 3 of these windows:
             3–7 min, 7–12 min, 12–18 min, 18–28 min, 28–40 min, 40–50 min.
           </p>
         ) : null}
