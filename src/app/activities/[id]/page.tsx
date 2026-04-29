@@ -11,6 +11,7 @@ import { interpolateKmSplits } from "@/lib/training/km-splits";
 import type { WeatherSnapshot } from "@/lib/weather";
 import { ActivityChart } from "@/components/charts/ActivityChart";
 import { KmSplitComparisonChart } from "@/components/charts/KmSplitComparisonChart";
+import { KmPaceProgressionChart } from "@/components/charts/KmPaceProgressionChart";
 import { Card, CardContent } from "@/components/ui/card";
 
 function weatherEmoji(code: number): string {
@@ -77,6 +78,7 @@ export default async function ActivityDetailPage({ params }: Props) {
     .where(
       and(
         eq(activities.userId, user.id),
+        eq(activities.sport, activity.sport),
         gte(activities.distanceM, activity.distanceM - margin),
         lte(activities.distanceM, activity.distanceM + margin),
         ne(activities.id, activity.id),
@@ -244,6 +246,11 @@ export default async function ActivityDetailPage({ params }: Props) {
 
           {/* Pace / HR chart */}
           {records.length > 0 && <ActivityChart records={records} />}
+
+          {/* Km pace progression */}
+          {currentSplits.length > 0 && (
+            <KmPaceProgressionChart splits={currentSplits} />
+          )}
 
           {/* Km split comparison */}
           {currentSplits.length > 0 && referenceSplits.length > 0 && (
