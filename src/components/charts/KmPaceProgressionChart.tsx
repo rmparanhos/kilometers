@@ -123,7 +123,6 @@ export function KmPaceProgressionChart({ splits }: KmPaceProgressionChartProps) 
             <YAxis
               type="number"
               domain={[paceMin, paceMax]}
-              reversed
               tick={{ fontSize: 11, fill: "#9ca3af" }}
               tickLine={false}
               axisLine={false}
